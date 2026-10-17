@@ -1,0 +1,27 @@
+[tool.ruff]
+line-length = 140
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "RUF"]
+ignore = [
+    # FastAPI's dependency injection idiom is Depends()/Form()/File() as an
+    # argument default -- that is the documented, correct usage, not a bug.
+    "B008",
+    # SQLAlchemy's declarative `type_annotation_map` and Pydantic model
+    # defaults are safely handled by their respective frameworks, not
+    # per-instance mutable state.
+    "RUF012",
+    # `str, Enum` is intentional here (not `enum.StrEnum`) for broad
+    # compatibility; ruff's own suggested fix is flagged unsafe because it
+    # changes str()/repr() behavior.
+    "UP042",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Alembic migrations are mechanical column/FK definitions; wrapping every
+# long `sa.ForeignKey(...)` call for line-length adds churn without value.
+"alembic/versions/*.py" = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
