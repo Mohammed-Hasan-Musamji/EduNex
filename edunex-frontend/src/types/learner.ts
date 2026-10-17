@@ -9,6 +9,8 @@ export type VarkPreference = "visual" | "auditory" | "read_write" | "kinesthetic
 export interface Learner {
   id: string;
   displayName: string;
+  email?: string;
+  role?: AdminRole;
   preferences: LearnerPreferences;
   createdAt: string;
   updatedAt: string;

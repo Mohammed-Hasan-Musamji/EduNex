@@ -3,10 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Menu, ChevronDown, LogOut, Settings, User } from "lucide-react";
+import { Menu, ChevronDown, LogOut, Settings, User, Flame, Zap, Trophy } from "lucide-react";
 import type { PanelVariant } from "@/config/navigation";
 import { routes } from "@/lib/routes";
 import { useLearner } from "@/hooks/use-learner";
+import { ThemeSelector } from "@/components/ui/ThemeSelector";
 import { cn } from "@/lib/utils";
 
 interface AppTopbarProps {
@@ -19,7 +20,7 @@ export function AppTopbar({ onMenuClick, variant }: AppTopbarProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const { learner, signOut } = useLearner();
-  const userName = variant === "learner" ? (learner?.displayName ?? "Learner") : "Admin";
+  const userName = learner?.displayName ?? (variant === "learner" ? "Learner" : "Admin");
 
   useEffect(() => {
     if (!isMenuOpen) return;
@@ -33,7 +34,7 @@ export function AppTopbar({ onMenuClick, variant }: AppTopbarProps) {
   }, [isMenuOpen]);
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between gap-4 border-b border-border bg-card px-4 sm:px-6">
+    <header className="relative z-40 flex h-16 shrink-0 items-center justify-between gap-3 border-b border-border bg-card px-3 sm:px-6">
       <button
         type="button"
         onClick={onMenuClick}
@@ -43,56 +44,81 @@ export function AppTopbar({ onMenuClick, variant }: AppTopbarProps) {
         <Menu className="size-5" aria-hidden="true" />
       </button>
 
+      {/* Gamification Stats from reference design (Learner mode) */}
+      {variant === "learner" && (
+        <div className="flex items-center gap-1.5 sm:gap-2.5 overflow-x-auto py-1 text-xs">
+          {/* Streak pill */}
+          <span className="flex items-center gap-1 sm:gap-1.5 rounded-full border border-orange-500/25 bg-orange-500/10 px-2.5 sm:px-3 py-1 font-semibold text-orange-600 dark:text-orange-400 shadow-2xs shrink-0">
+            <Flame className="size-3.5 text-orange-500 fill-orange-500 animate-pulse" />
+            <span>3 Days</span>
+          </span>
+
+          {/* XP pill */}
+          <span className="flex items-center gap-1 sm:gap-1.5 rounded-full border border-amber-500/25 bg-amber-500/10 px-2.5 sm:px-3 py-1 font-semibold text-amber-600 dark:text-amber-400 shadow-2xs shrink-0">
+            <Zap className="size-3.5 text-amber-500 fill-amber-500" />
+            <span>420 XP</span>
+          </span>
+
+          {/* Level Badge */}
+          <span className="hidden md:flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 font-semibold text-emerald-600 dark:text-emerald-400 shadow-2xs shrink-0">
+            <Trophy className="size-3.5 text-emerald-500" />
+            <span>Level 4 Scholar</span>
+          </span>
+        </div>
+      )}
+
       <div className="flex-1" />
 
-      <div ref={menuRef} className="relative">
-        <button
-          type="button"
-          onClick={() => setIsMenuOpen((open) => !open)}
-          aria-haspopup="menu"
-          aria-expanded={isMenuOpen}
-          className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-text hover:bg-ivory"
-        >
-          <span className="flex size-7 items-center justify-center rounded-full bg-secondary/20 text-secondary">
-            <User className="size-4" aria-hidden="true" />
-          </span>
-          <span className="hidden sm:inline">{userName}</span>
-          <ChevronDown className="size-4 text-text-muted" aria-hidden="true" />
-        </button>
+      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        <ThemeSelector variant="compact" />
 
-        {isMenuOpen && (
-          <div
-            role="menu"
-            className={cn(
-              "absolute right-0 top-full mt-2 w-48 rounded-md border border-border bg-white p-1 shadow-md",
-            )}
+        <div ref={menuRef} className="relative">
+          <button
+            type="button"
+            onClick={() => setIsMenuOpen((open) => !open)}
+            aria-haspopup="menu"
+            aria-expanded={isMenuOpen}
+            className="flex items-center gap-2 rounded-xl border border-transparent p-1.5 text-sm font-medium text-text transition-colors hover:border-border hover:bg-ivory"
           >
-            <Link
-              href={routes.admin.analyticsSettings}
-              role="menuitem"
-              className="flex items-center gap-2 rounded-sm px-2.5 py-2 text-sm text-text hover:bg-ivory"
-              onClick={() => setIsMenuOpen(false)}
+            <span className="flex size-7 items-center justify-center rounded-full bg-primary/15 text-primary shadow-2xs ring-1 ring-primary/30">
+              <User className="size-4" aria-hidden="true" />
+            </span>
+            <span className="hidden sm:inline font-medium">{userName}</span>
+            <ChevronDown className="size-3.5 text-text-muted" aria-hidden="true" />
+          </button>
+
+          {isMenuOpen && (
+            <div
+              role="menu"
+              className={cn(
+                "absolute right-0 top-full z-50 mt-2 w-48 rounded-2xl border border-border bg-card p-1.5 shadow-xl backdrop-blur-xl animate-fade-scale",
+              )}
             >
-              <Settings className="size-4" aria-hidden="true" />
-              Settings
-            </Link>
-            {variant === "learner" && (
+              <Link
+                href={routes.admin.analyticsSettings}
+                role="menuitem"
+                className="flex items-center gap-2 rounded-sm px-2.5 py-2 text-sm text-text hover:bg-ivory"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <Settings className="size-4" aria-hidden="true" />
+                Settings
+              </Link>
               <button
                 type="button"
                 role="menuitem"
-                className="flex w-full items-center gap-2 rounded-sm px-2.5 py-2 text-left text-sm text-text hover:bg-ivory"
-                onClick={() => {
+                className="flex w-full items-center gap-2 rounded-sm px-2.5 py-2 text-left text-sm text-error hover:bg-error-bg"
+                onClick={async () => {
                   setIsMenuOpen(false);
-                  signOut();
+                  await signOut();
                   router.push(routes.login);
                 }}
               >
                 <LogOut className="size-4" aria-hidden="true" />
-                Switch profile
+                Sign out
               </button>
-            )}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );

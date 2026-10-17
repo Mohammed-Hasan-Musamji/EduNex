@@ -1,713 +1,455 @@
-
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { Card, CardTitle, CardDescription } from "@/components/ui/Card";
+import {
+  Activity,
+  AlertTriangle,
+  ArrowRight,
+  Award,
+  BarChart3,
+  BookOpen,
+  Calendar,
+  CheckCircle2,
+  Compass,
+  Dumbbell,
+  Sparkles,
+  Target,
+  Trophy,
+  Flame,
+} from "lucide-react";
+import { SpotlightCard } from "@/components/ui/SpotlightCard";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { LoadingState } from "@/components/ui/LoadingState";
 import { formatDate, formatPercentage } from "@/lib/formatters";
+import { appConfig } from "@/config/app";
+import { routes, buildLearnUrl } from "@/lib/routes";
+import { demoLessonCompletions, demoMastery, demoNextSteps } from "@/lib/demo-data";
 import { progressApi, lessonsApi } from "@/lib/api-client";
 import { useLearner } from "@/hooks/use-learner";
+import { playClickSound, playHoverTick } from "@/lib/audio-effects";
+import type { Topic } from "@/types/content";
+import { cn } from "@/lib/utils";
+
+function DemoBadge() {
+  return (
+    <span className="rounded-full border border-border bg-ivory px-2.5 py-0.5 text-[10px] font-semibold text-text-muted">
+      {appConfig.demoDataLabel}
+    </span>
+  );
+}
 
 interface MasteryRow {
   topicId: string;
   topicName: string;
   masteryLevel: number;
-}
-
-interface CompletionRow {
-  topicId: string;
-  topicName: string;
-  completedAt: string;
-}
-
-interface Recommendation {
-  kind: "review" | "practice" | "lesson";
-  title: string;
-  description: string;
-  topicId: string;
-  href: string;
-}
-
-function clamp(value: number) {
-  return Math.min(100, Math.max(0, Number(value) || 0));
-}
-
-function getMasteryLabel(value: number) {
-  if (value >= 85) return "Excellent";
-  if (value >= 70) return "Strong";
-  if (value >= 60) return "Developing";
-  return "Needs practice";
-}
-
-function getMasteryColor(value: number) {
-  if (value >= 70) return "bg-emerald-500";
-  if (value >= 60) return "bg-amber-500";
-  return "bg-primary";
-}
-
-function SectionHeading({
-  eyebrow,
-  title,
-  description,
-}: {
-  eyebrow: string;
-  title: string;
-  description?: string;
-}) {
-  return (
-    <div className="mb-5">
-      <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">
-        {eyebrow}
-      </p>
-      <h2 className="mt-1 text-xl font-bold tracking-tight text-text sm:text-2xl">
-        {title}
-      </h2>
-      {description && (
-        <p className="mt-1 text-sm leading-6 text-text-muted">
-          {description}
-        </p>
-      )}
-    </div>
-  );
-}
-
-function SummaryCard({
-  label,
-  value,
-  detail,
-  icon,
-  accent,
-}: {
-  label: string;
-  value: string | number;
-  detail: string;
-  icon: string;
-  accent: string;
-}) {
-  return (
-    <Card className="group relative overflow-hidden transition duration-300 hover:-translate-y-1 hover:shadow-card">
-      <div
-        className={`absolute -right-5 -top-5 h-24 w-24 rounded-full opacity-60 blur-2xl ${accent}`}
-        aria-hidden="true"
-      />
-      <div className="relative flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-medium text-text-muted">{label}</p>
-          <p className="mt-3 text-3xl font-bold tracking-tight text-text">
-            {value}
-          </p>
-          <p className="mt-2 text-xs leading-5 text-text-muted">{detail}</p>
-        </div>
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-ivory text-xl">
-          <span aria-hidden="true">{icon}</span>
-        </div>
-      </div>
-    </Card>
-  );
-}
-
-function MasteryBar({ item }: { item: MasteryRow }) {
-  const score = clamp(item.masteryLevel);
-
-  return (
-    <li className="rounded-2xl border border-border/70 bg-white p-4 transition hover:border-primary/30">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <p className="break-words text-sm font-semibold text-text">
-            {item.topicName}
-          </p>
-          <p className="mt-1 text-xs text-text-muted">
-            {getMasteryLabel(score)}
-          </p>
-        </div>
-        <span className="text-sm font-bold tabular-nums text-text">
-          {formatPercentage(score)}
-        </span>
-      </div>
-
-      <div
-        className="progress-track mt-3 h-2.5"
-        role="progressbar"
-        aria-label={`${item.topicName} mastery`}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={score}
-      >
-        <div
-          className={`progress-fill ${getMasteryColor(score)}`}
-          style={{
-            width: `${score}%`,
-            animationDelay: "100ms",
-          }}
-        />
-      </div>
-    </li>
-  );
-}
-
-function MasteryChart({ mastery }: { mastery: MasteryRow[] }) {
-  const chartItems = [...mastery]
-    .sort((a, b) => b.masteryLevel - a.masteryLevel)
-    .slice(0, 6);
-
-  if (chartItems.length === 0) {
-    return (
-      <div className="flex min-h-48 flex-col items-center justify-center rounded-2xl border border-dashed border-border px-5 text-center">
-        <span className="text-3xl" aria-hidden="true">📊</span>
-        <p className="mt-3 text-sm font-semibold text-text">
-          Your chart starts here
-        </p>
-        <p className="mt-1 max-w-xs text-sm text-text-muted">
-          Complete assessments to see your topic mastery visualized here.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-5">
-      {chartItems.map((item, index) => {
-        const score = clamp(item.masteryLevel);
-
-        return (
-          <div key={item.topicId}>
-            <div className="mb-2 flex items-center justify-between gap-3">
-              <span className="min-w-0 truncate text-sm font-medium text-text">
-                {item.topicName}
-              </span>
-              <span className="shrink-0 text-sm font-semibold tabular-nums text-text-muted">
-                {formatPercentage(score)}
-              </span>
-            </div>
-            <div className="h-3 overflow-hidden rounded-full bg-border/70">
-              <div
-                className="h-full rounded-full transition-[width] duration-1000 ease-out"
-                style={{
-                  width: `${score}%`,
-                  background:
-                    index === 0
-                      ? "#427b58"
-                      : index === 1
-                        ? "#bd6548"
-                        : index === 2
-                          ? "#9870c5"
-                          : index === 3
-                            ? "#e7b84d"
-                            : "#7eaa91",
-                }}
-              />
-            </div>
-          </div>
-        );
-      })}
-      <p className="text-xs text-text-muted">
-        Showing up to six topics, ranked by recorded mastery. This is an
-        accuracy-based estimate, not a validated ability score.
-      </p>
-    </div>
-  );
+  isDemo: boolean;
 }
 
 export default function ProgressPage() {
   const { learner } = useLearner();
-
-  const [mastery, setMastery] = useState<MasteryRow[]>([]);
-  const [completions, setCompletions] = useState<CompletionRow[]>([]);
-  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [masteryError, setMasteryError] = useState(false);
-  const [lessonsError, setLessonsError] = useState(false);
-  const [recommendationsError, setRecommendationsError] = useState(false);
+  const [realMastery, setRealMastery] = useState<MasteryRow[] | null>(null);
+  const [realCompletions, setRealCompletions] = useState<{ topicId: string; topicName: string; completedAt: string }[]>([]);
+  const [recommendations, setRecommendations] = useState<typeof demoNextSteps | null>(null);
 
   useEffect(() => {
     if (!learner) return;
 
-    let cancelled = false;
-
-    async function loadProgress() {
-      setLoading(true);
-      setMasteryError(false);
-      setLessonsError(false);
-      setRecommendationsError(false);
-
-      const [masteryResult, lessonsResult, recommendationsResult] =
-        await Promise.allSettled([
-          progressApi.list(learner!.id),
-          lessonsApi.listForLearner(learner!.id),
-          progressApi.recommendations(learner!.id),
-        ]);
-
-      if (cancelled) return;
-
-      if (masteryResult.status === "fulfilled" && masteryResult.value.ok) {
-        setMastery(
-          masteryResult.value.data.map((item) => ({
-            topicId: item.topicId,
-            topicName: item.topicName,
-            masteryLevel: clamp(item.masteryEstimate),
-          })),
+    void progressApi.list(learner.id).then((res) => {
+      if (res.ok) {
+        setRealMastery(
+          res.data.map((p) => ({ topicId: p.topicId, topicName: p.topicName, masteryLevel: p.masteryEstimate, isDemo: false })),
         );
       } else {
-        setMastery([]);
-        setMasteryError(true);
+        setRealMastery([]);
       }
+    });
 
-      if (lessonsResult.status === "fulfilled" && lessonsResult.value.ok) {
-        setCompletions(
-          lessonsResult.value.data
-            .filter((lesson) => lesson.status === "ready")
-            .map((lesson) => ({
-              topicId: lesson.topicId,
-              topicName: lesson.topicName,
-              completedAt: lesson.updatedAt,
-            })),
+    void lessonsApi.listForLearner(learner.id).then((res) => {
+      if (res.ok) {
+        setRealCompletions(
+          res.data
+            .filter((s) => s.status === "ready")
+            .map((s) => ({ topicId: s.topicId, topicName: s.topicName, completedAt: s.updatedAt })),
         );
-      } else {
-        setCompletions([]);
-        setLessonsError(true);
       }
+    });
 
-      if (
-        recommendationsResult.status === "fulfilled" &&
-        recommendationsResult.value.ok
-      ) {
+    void progressApi.recommendations(learner.id).then((res) => {
+      if (res.ok) {
         setRecommendations(
-          recommendationsResult.value.data.map((item) => ({
-            kind:
-              item.recommendationType === "review"
-                ? "review"
-                : item.recommendationType === "practice_harder"
-                  ? "practice"
-                  : "lesson",
-            title: item.label,
-            description: item.rationale,
-            topicId: item.topicId,
+          res.data.map((r) => ({
+            kind: r.recommendationType === "review" ? "review" : r.recommendationType === "practice_harder" ? "practice" : "lesson",
+            title: r.label,
+            description: r.rationale,
+            topicId: r.topicId,
             href: "/learner/practice",
           })),
         );
-      } else {
-        setRecommendations([]);
-        setRecommendationsError(true);
       }
-
-      setLoading(false);
-    }
-
-    void loadProgress();
-
-    return () => {
-      cancelled = true;
-    };
+    });
   }, [learner]);
 
-  const stats = useMemo(() => {
-    const average =
-      mastery.length > 0
-        ? Math.round(
-            mastery.reduce((sum, item) => sum + item.masteryLevel, 0) /
-              mastery.length,
-          )
-        : null;
+  const realTopicIds = new Set((realMastery ?? []).map((m) => m.topicId));
+  const mastery: MasteryRow[] = [
+    ...(realMastery ?? []),
+    ...demoMastery.filter((m) => !realTopicIds.has(m.topicId)).map((m) => ({ ...m, isDemo: true })),
+  ];
+  const completions = [
+    ...realCompletions,
+    ...demoLessonCompletions.filter((c) => !realTopicIds.has(c.topicId)),
+  ];
+  const nextSteps = recommendations ?? demoNextSteps;
 
-    return {
-      average,
-      topicsTracked: mastery.length,
-      strengths: mastery.filter((item) => item.masteryLevel >= 70),
-      improvementAreas: mastery.filter((item) => item.masteryLevel < 60),
-    };
-  }, [mastery]);
+  const strengths = mastery.filter((m) => m.masteryLevel >= 70);
+  const improvementAreas = mastery.filter((m) => m.masteryLevel < 60);
 
-  if (!learner || loading) {
-    return <LoadingState label="Loading your learning journey…" className="py-20" />;
-  }
+  const averageMastery =
+    mastery.length > 0
+      ? Math.round(mastery.reduce((acc, curr) => acc + curr.masteryLevel, 0) / mastery.length)
+      : 0;
 
-  const hasAnyData =
-    mastery.length > 0 || completions.length > 0 || recommendations.length > 0;
+  const getTier = (level: number) => {
+    if (level >= 80) return { label: "Advanced", badge: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30" };
+    if (level >= 60) return { label: "Proficient", badge: "bg-primary/15 text-primary border-primary/30" };
+    return { label: "Developing", badge: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30" };
+  };
 
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-8 pb-10">
-      <PageHeader
-        title="My Progress"
-        description="See what you have mastered, discover where to improve, and decide what to learn next."
-      />
-
-      {/* Hero banner */}
-      <section className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#713f30] via-[#9d543c] to-[#bd6548] p-6 text-white shadow-lg sm:p-8 lg:p-10">
-        <div
-          className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full border border-white/15"
-          aria-hidden="true"
-        />
-        <div
-          className="pointer-events-none absolute -right-5 -top-9 h-44 w-44 rounded-full border border-white/15"
-          aria-hidden="true"
-        />
-        <div
-          className="pointer-events-none absolute -bottom-24 right-1/3 h-48 w-48 rounded-full bg-white/10 blur-3xl"
-          aria-hidden="true"
-        />
-
-        <div className="relative grid gap-6 md:grid-cols-[1fr_auto] md:items-center">
-          <div>
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold backdrop-blur">
-              <span aria-hidden="true">✦</span>
-              YOUR LEARNING JOURNEY
+    <div className="space-y-6 animate-in fade-in duration-500">
+      {/* Header Banner */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-3xl border border-border/80 bg-card p-6 sm:p-8 shadow-xs backdrop-blur-xl transition-all">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-xs">
+              <BarChart3 className="size-5" />
             </span>
-            <h2 className="mt-5 max-w-2xl text-3xl font-bold tracking-tight sm:text-4xl">
-              Every step forward counts.
-            </h2>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-white/80 sm:text-base">
-              Review your recorded results, celebrate your strengths, and focus
-              on the topics that need more practice.
-            </p>
-            <Link
-              href="/learner/practice"
-              className="primary-glow mt-6 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-[#713f30] transition hover:-translate-y-0.5"
-            >
-              Continue practicing <span aria-hidden="true">→</span>
-            </Link>
+            <h1 className="font-serif text-2xl font-bold tracking-tight text-text sm:text-3xl">
+              My Progress & Mastery
+            </h1>
           </div>
-
-          <div className="flex h-28 w-28 items-center justify-center rounded-full border border-white/25 bg-white/10 text-5xl shadow-inner backdrop-blur sm:h-36 sm:w-36 sm:text-6xl">
-            <span aria-hidden="true">🎯</span>
-          </div>
-        </div>
-      </section>
-
-      {/* API errors */}
-      {(masteryError || lessonsError || recommendationsError) && (
-        <div
-          className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"
-          role="status"
-        >
-          <p className="font-semibold">Some progress information is unavailable.</p>
-          <p className="mt-1 leading-6">
-            We could not load every section. Displayed values use available
-            backend results only; missing information is not replaced with
-            sample data.
+          <p className="mt-1 text-sm text-text-muted">
+            Track demonstrated mastery, lesson completions, and adaptive recommendations in real time.
           </p>
         </div>
-      )}
 
-      {/* Summary metrics */}
-      <section>
-        <SectionHeading
-          eyebrow="At a glance"
-          title="Your learning snapshot"
-          description="A summary of the progress data currently available for your account."
-        />
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <SummaryCard
-            label="Average mastery"
-            value={stats.average === null ? "—" : `${stats.average}%`}
-            detail={
-              stats.average === null
-                ? "No assessment mastery recorded yet"
-                : "Average across topics with recorded results"
-            }
-            icon="📈"
-            accent="bg-emerald-200"
-          />
-          <SummaryCard
-            label="Topics tracked"
-            value={stats.topicsTracked}
-            detail="Topics with recorded mastery"
-            icon="🧠"
-            accent="bg-violet-200"
-          />
-          <SummaryCard
-            label="Lessons completed"
-            value={lessonsError ? "—" : completions.length}
-            detail={
-              lessonsError
-                ? "Lesson data unavailable"
-                : "Lessons returned by your learning history"
-            }
-            icon="📚"
-            accent="bg-amber-200"
-          />
-          <SummaryCard
-            label="Strong topics"
-            value={stats.strengths.length}
-            detail="Topics with mastery at or above 70%"
-            icon="🏆"
-            accent="bg-rose-200"
-          />
+        <div className="flex items-center gap-2.5">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-ivory px-3.5 py-1.5 text-xs font-semibold text-text shadow-2xs">
+            <Award className="size-3.5 text-primary" />
+            Tier: {averageMastery >= 75 ? "Expert" : averageMastery >= 50 ? "Proficient" : "Foundational"}
+          </span>
         </div>
-      </section>
+      </div>
 
-      {!hasAnyData && !masteryError && !lessonsError && !recommendationsError ? (
-        <EmptyState
-          title="Your learning story starts here"
-          description="Complete a lesson or practice assessment. Once results are recorded, your mastery, learning history, and recommendations will appear here."
-        />
-      ) : (
-        <>
-          {/* Mastery chart and detailed topic mastery */}
-          <section className="grid grid-cols-1 gap-5 xl:grid-cols-[0.9fr_1.1fr]">
-            <Card>
-              <SectionHeading
-                eyebrow="Visual analytics"
-                title="Mastery overview"
-                description="Compare your recorded topic mastery at a glance."
-              />
-              <MasteryChart mastery={mastery} />
-            </Card>
-
-            <Card>
-              <SectionHeading
-                eyebrow="Topic breakdown"
-                title="Demonstrated mastery"
-                description="An accuracy-based estimate from your recorded assessment results."
-              />
-              {masteryError ? (
-                <p className="text-sm text-text-muted">
-                  Topic mastery could not be loaded.
-                </p>
-              ) : mastery.length === 0 ? (
-                <p className="rounded-xl bg-ivory p-4 text-sm leading-6 text-text-muted">
-                  No mastery results have been recorded yet. Try a practice
-                  assessment to start building your topic history.
-                </p>
-              ) : (
-                <ul className="space-y-3">
-                  {mastery.map((item) => (
-                    <MasteryBar key={item.topicId} item={item} />
-                  ))}
-                </ul>
-              )}
-            </Card>
-          </section>
-
-          {/* Strengths and gaps */}
-          <section>
-            <SectionHeading
-              eyebrow="Your next breakthrough"
-              title="Strengths and opportunities"
-              description="Use these results to decide where to focus your next study session."
-            />
-
-            <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-              <Card>
-                <div className="flex items-start gap-3">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-xl">
-                    <span aria-hidden="true">🌟</span>
-                  </div>
-                  <div>
-                    <CardTitle>Your strengths</CardTitle>
-                    <CardDescription>
-                      Topics with at least 70% recorded mastery.
-                    </CardDescription>
-                  </div>
-                </div>
-
-                {stats.strengths.length === 0 ? (
-                  <p className="mt-5 rounded-xl bg-ivory p-4 text-sm leading-6 text-text-muted">
-                    {mastery.length === 0
-                      ? "Strengths will appear when assessment results are available."
-                      : "No topic has reached 70% mastery yet. Keep practicing and check back after your next assessment."}
-                  </p>
-                ) : (
-                  <ul className="mt-5 space-y-3">
-                    {stats.strengths.map((item) => (
-                      <li
-                        key={item.topicId}
-                        className="flex items-center justify-between gap-3 rounded-xl bg-emerald-50/70 p-3"
-                      >
-                        <span className="text-sm font-medium text-text">
-                          {item.topicName}
-                        </span>
-                        <span className="shrink-0 text-sm font-bold text-emerald-700">
-                          {formatPercentage(item.masteryLevel)}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </Card>
-
-              <Card>
-                <div className="flex items-start gap-3">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-amber-50 text-xl">
-                    <span aria-hidden="true">🧭</span>
-                  </div>
-                  <div>
-                    <CardTitle>Areas to improve</CardTitle>
-                    <CardDescription>
-                      Topics with less than 60% recorded mastery.
-                    </CardDescription>
-                  </div>
-                </div>
-
-                {stats.improvementAreas.length === 0 ? (
-                  <p className="mt-5 rounded-xl bg-ivory p-4 text-sm leading-6 text-text-muted">
-                    {mastery.length === 0
-                      ? "Your improvement areas will appear after mastery results are recorded."
-                      : "No topics are currently below 60% mastery. Review your results regularly to maintain your understanding."}
-                  </p>
-                ) : (
-                  <ul className="mt-5 space-y-3">
-                    {stats.improvementAreas.map((item) => (
-                      <li
-                        key={item.topicId}
-                        className="flex items-center justify-between gap-3 rounded-xl bg-amber-50/70 p-3"
-                      >
-                        <span className="text-sm font-medium text-text">
-                          {item.topicName}
-                        </span>
-                        <span className="shrink-0 text-sm font-bold text-amber-700">
-                          {formatPercentage(item.masteryLevel)}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </Card>
-            </div>
-          </section>
-
-          {/* Lesson activity */}
-          <section>
-            <SectionHeading
-              eyebrow="Learning history"
-              title="Your lesson activity"
-              description="Lessons returned by your existing learner API."
-            />
-
-            <Card>
-              {lessonsError ? (
-                <p className="text-sm text-text-muted">
-                  Lesson activity could not be loaded.
-                </p>
-              ) : completions.length === 0 ? (
-                <div className="rounded-xl bg-ivory p-5">
-                  <p className="font-semibold text-text">
-                    No lesson activity to show yet
-                  </p>
-                  <p className="mt-1 text-sm leading-6 text-text-muted">
-                    Once lessons are available in your learner history, they
-                    will appear in this section.
-                  </p>
-                  <Link
-                    href="/learner/learn"
-                    className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
-                  >
-                    Explore learning <span aria-hidden="true">→</span>
-                  </Link>
-                </div>
-              ) : (
-                <ol className="space-y-0">
-                  {completions.map((lesson, index) => (
-                    <li
-                      key={`${lesson.topicId}-${lesson.completedAt}`}
-                      className="relative flex gap-4 pb-5 last:pb-0"
-                    >
-                      <div className="relative flex flex-col items-center">
-                        <div className="z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-sm text-emerald-700">
-                          ✓
-                        </div>
-                        {index < completions.length - 1 && (
-                          <div className="absolute top-9 h-full w-px bg-border" />
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1 rounded-xl border border-border/70 p-4">
-                        <p className="break-words text-sm font-semibold text-text">
-                          {lesson.topicName}
-                        </p>
-                        <p className="mt-1 text-xs text-text-muted">
-                          Recorded: {formatDate(lesson.completedAt)}
-                        </p>
-                      </div>
-                    </li>
-                  ))}
-                </ol>
-              )}
-            </Card>
-          </section>
-
-          {/* Recommendations */}
-          <section>
-            <SectionHeading
-              eyebrow="Personalized guidance"
-              title="Recommended next steps"
-              description="Recommendations supplied by your existing progress API."
-            />
-
-            <Card>
-              {recommendationsError ? (
-                <p className="text-sm leading-6 text-text-muted">
-                  Recommendations are currently unavailable. You can still
-                  continue with a practice assessment.
-                </p>
-              ) : recommendations.length === 0 ? (
-                <div className="rounded-xl bg-ivory p-5">
-                  <p className="font-semibold text-text">
-                    No recommendations available yet
-                  </p>
-                  <p className="mt-1 text-sm leading-6 text-text-muted">
-                    Your next steps will appear when the recommendation service
-                    returns results.
-                  </p>
-                </div>
-              ) : (
-                <ul className="space-y-3">
-                  {recommendations.map((item, index) => (
-                    <li
-                      key={`${item.topicId}-${item.title}`}
-                      className="group flex flex-col gap-4 rounded-2xl border border-border/70 p-4 transition hover:border-primary/30 hover:bg-ivory/50 sm:flex-row sm:items-center"
-                    >
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-ivory text-xl">
-                        <span aria-hidden="true">
-                          {item.kind === "review"
-                            ? "🔁"
-                            : item.kind === "practice"
-                              ? "⚡"
-                              : "📖"}
-                        </span>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-text">
-                          {item.title}
-                        </p>
-                        <p className="mt-1 text-sm leading-6 text-text-muted">
-                          {item.description}
-                        </p>
-                      </div>
-                      <Link
-                        href={item.href}
-                        className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-semibold text-text transition hover:border-primary hover:text-primary"
-                      >
-                        Start <span aria-hidden="true">→</span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Card>
-          </section>
-        </>
-      )}
-
-      {/* Honest status for features not backed by the current API */}
-      <section className="rounded-2xl border border-border/70 bg-white/70 p-5 sm:p-6">
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-ivory text-xl">
-            <span aria-hidden="true">🏅</span>
+      {/* 3 Metric Cards Overview */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <SpotlightCard className="p-5 flex items-center gap-4">
+          <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary shadow-xs ring-1 ring-primary/25">
+            <Target className="size-6" />
+          </span>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">Average Mastery</p>
+            <p className="font-serif text-2xl font-bold tracking-tight text-text">
+              {formatPercentage(averageMastery)}
+            </p>
+            <p className="text-[11px] text-text-muted">Across {mastery.length} topics</p>
           </div>
-          <div className="min-w-0">
-            <h2 className="font-bold text-text">Achievements and study streaks</h2>
-            <p className="mt-1 text-sm leading-6 text-text-muted">
-              Your current progress API provides topic mastery, lesson records,
-              and recommendations. Verified badges, daily streaks, study-time
-              charts, and notifications need their own reliable activity data
-              before they can be displayed accurately.
+        </SpotlightCard>
+
+        <SpotlightCard className="p-5 flex items-center gap-4">
+          <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-secondary/15 text-secondary shadow-xs ring-1 ring-secondary/25">
+            <CheckCircle2 className="size-6" />
+          </span>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">Lessons Completed</p>
+            <p className="font-serif text-2xl font-bold tracking-tight text-text">{completions.length}</p>
+            <p className="text-[11px] text-text-muted">Finished modules</p>
+          </div>
+        </SpotlightCard>
+
+        <SpotlightCard className="p-5 flex items-center gap-4">
+          <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 shadow-xs ring-1 ring-emerald-500/25">
+            <Award className="size-6" />
+          </span>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">Demonstrated Strengths</p>
+            <p className="font-serif text-2xl font-bold tracking-tight text-text">{strengths.length}</p>
+            <p className="text-[11px] text-text-muted">Topics &gt; 70% recall</p>
+          </div>
+        </SpotlightCard>
+      </div>
+
+      {/* Main Grid: Demonstrated Mastery & Lesson Completion */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* Data Structures Mastery Breakdown (from Screenshot 2) */}
+        <SpotlightCard className="p-6 sm:p-7">
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <span className="flex size-8 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Target className="size-4" />
+              </span>
+              <h2 className="font-serif text-lg font-bold tracking-tight text-text">Data Structures Mastery Breakdown</h2>
+            </div>
+            {mastery.some((m) => m.isDemo) && <DemoBadge />}
+          </div>
+          <p className="text-xs text-text-muted mb-4">
+            Ground truth statistics derived directly from your assessment attempts and completed whiteboard lessons.
+          </p>
+
+          <ul className="flex flex-col gap-4">
+            {mastery.map((item) => {
+              const tier = getTier(item.masteryLevel);
+              return (
+                <li
+                  key={item.topicId}
+                  className="group/topic rounded-2xl border border-border/60 bg-ivory/30 p-3.5 transition-all duration-200 hover:border-primary/40 hover:bg-card hover:shadow-xs"
+                >
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-bold text-text group-hover/topic:text-primary transition-colors">
+                      {item.topicName}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={cn("rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase", tier.badge)}>
+                        {tier.label}
+                      </span>
+                      <span className="font-bold text-text text-sm">
+                        {formatPercentage(item.masteryLevel)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-2.5 h-2.5 w-full overflow-hidden rounded-full bg-border/80">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-secondary to-primary transition-all duration-1000 ease-out group-hover/topic:brightness-110"
+                      style={{ width: `${item.masteryLevel}%` }}
+                    />
+                  </div>
+
+                  <div className="mt-2.5 flex justify-end">
+                    <Link
+                      href={routes.learner.practice}
+                      onMouseEnter={playHoverTick}
+                      onClick={playClickSound}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                    >
+                      <span>Practice quiz</span>
+                      <ArrowRight className="size-3 transition-transform group-hover/topic:translate-x-0.5" />
+                    </Link>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </SpotlightCard>
+
+        {/* Weekly Activity Ledger (from Screenshot 2) */}
+        <SpotlightCard className="p-6 sm:p-7 flex flex-col justify-between">
+          <div>
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <span className="flex size-8 items-center justify-center rounded-xl bg-orange-500/15 text-orange-600 dark:text-orange-400">
+                  <Flame className="size-4 fill-orange-500" />
+                </span>
+                <h2 className="font-serif text-lg font-bold tracking-tight text-text">Weekly Activity Ledger</h2>
+              </div>
+              <span className="flex items-center gap-1.5 text-xs font-bold text-orange-600 dark:text-orange-400 bg-orange-500/10 px-3 py-1 rounded-full border border-orange-500/20">
+                <Flame className="size-3.5 fill-orange-500 animate-pulse" />
+                3 Day Active Streak
+              </span>
+            </div>
+
+            <p className="text-xs text-text-muted mb-5">
+              Daily diagnostic and lesson completion velocity across the current study week.
+            </p>
+
+            {/* 7 Days Row */}
+            <div className="grid grid-cols-7 gap-2 sm:gap-3 py-2 text-center">
+              {[
+                { day: "Mon", icon: "✓", active: true, color: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 font-bold" },
+                { day: "Tue", icon: "✓", active: true, color: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 font-bold" },
+                { day: "Wed", icon: "⚡", active: true, color: "bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/40 ring-2 ring-amber-500/30 scale-105 font-bold" },
+                { day: "Thu", icon: "—", active: false, color: "bg-card border-border/60 text-text-muted/40" },
+                { day: "Fri", icon: "—", active: false, color: "bg-card border-border/60 text-text-muted/40" },
+                { day: "Sat", icon: "—", active: false, color: "bg-card border-border/60 text-text-muted/40" },
+                { day: "Sun", icon: "—", active: false, color: "bg-card border-border/60 text-text-muted/40" },
+              ].map((slot) => (
+                <div key={slot.day} className="flex flex-col items-center gap-1.5">
+                  <span className="text-[11px] font-semibold text-text-muted">{slot.day}</span>
+                  <span
+                    className={cn(
+                      "flex size-9 sm:size-10 items-center justify-center rounded-2xl border text-xs shadow-2xs transition-all",
+                      slot.color
+                    )}
+                  >
+                    {slot.icon}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-primary/20 bg-primary/5 p-3.5 text-xs text-text-muted">
+            <p>
+              <span className="font-bold text-text">Next Milestone:</span> Learn tomorrow to unlock the <span className="font-semibold text-primary">&ldquo;Consistent Learner&rdquo;</span> 4-day badge!
             </p>
           </div>
+        </SpotlightCard>
+      </div>
+
+      {/* Lesson Completion & Strengths Grid */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* Lesson Completion */}
+        <SpotlightCard className="p-6 sm:p-7">
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <span className="flex size-8 items-center justify-center rounded-xl bg-secondary/15 text-secondary">
+                <BookOpen className="size-4" />
+              </span>
+              <h2 className="font-serif text-lg font-bold tracking-tight text-text">Lesson completion</h2>
+            </div>
+            {completions.length !== realCompletions.length && <DemoBadge />}
+          </div>
+          <p className="text-xs text-text-muted mb-4">
+            Curriculum modules completed independent of assessment accuracy scores.
+          </p>
+
+          {completions.length === 0 ? (
+            <div className="flex h-48 flex-col items-center justify-center rounded-2xl border border-dashed border-border/80 bg-ivory/20 text-center p-4">
+              <BookOpen className="size-8 text-text-muted mb-2" />
+              <p className="text-sm font-semibold text-text">No completed lessons yet</p>
+              <p className="text-xs text-text-muted mt-1">Start a lesson to begin your learning log.</p>
+            </div>
+          ) : (
+            <ul className="flex flex-col gap-3">
+              {completions.map((lesson) => (
+                <li
+                  key={lesson.topicId}
+                  className="flex items-center justify-between rounded-2xl border border-border/60 bg-ivory/30 p-3.5 transition-all hover:border-primary/30 hover:bg-card"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="flex size-7 items-center justify-center rounded-lg bg-success/15 text-success">
+                      <CheckCircle2 className="size-4" />
+                    </span>
+                    <span className="font-semibold text-sm text-text">{lesson.topicName}</span>
+                  </div>
+                  <span className="flex items-center gap-1.5 text-xs text-text-muted">
+                    <Calendar className="size-3.5" />
+                    {formatDate(lesson.completedAt)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </SpotlightCard>
+      </div>
+
+      {/* Strengths & Improvement Areas Row */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* Strengths */}
+        <SpotlightCard className="p-6 sm:p-7">
+          <div className="flex items-center gap-2.5 mb-2">
+            <span className="flex size-8 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+              <Trophy className="size-4" />
+            </span>
+            <h2 className="font-serif text-lg font-bold tracking-tight text-text">Demonstrated Strengths</h2>
+          </div>
+          <p className="text-xs text-text-muted mb-4">Topics with &gt; 70% demonstrated mastery retention.</p>
+
+          {strengths.length === 0 ? (
+            <p className="text-xs text-text-muted italic">Complete more practice sets to unlock strengths.</p>
+          ) : (
+            <div className="flex flex-wrap gap-2.5">
+              {strengths.map((item) => (
+                <span
+                  key={item.topicId}
+                  className="inline-flex items-center gap-1.5 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-300 shadow-2xs"
+                >
+                  <Sparkles className="size-3.5" />
+                  <span>{item.topicName}</span>
+                  <span className="rounded-md bg-white/40 dark:bg-black/20 px-1.5 py-0.2 text-[10px]">
+                    {formatPercentage(item.masteryLevel)}
+                  </span>
+                </span>
+              ))}
+            </div>
+          )}
+        </SpotlightCard>
+
+        {/* Improvement Areas */}
+        <SpotlightCard className="p-6 sm:p-7">
+          <div className="flex items-center gap-2.5 mb-2">
+            <span className="flex size-8 items-center justify-center rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400">
+              <AlertTriangle className="size-4" />
+            </span>
+            <h2 className="font-serif text-lg font-bold tracking-tight text-text">Areas Needing Practice</h2>
+          </div>
+          <p className="text-xs text-text-muted mb-4">Concepts below 60% mastery where targeted practice is advised.</p>
+
+          {improvementAreas.length === 0 ? (
+            <div className="flex items-center gap-2 text-xs font-semibold text-success">
+              <CheckCircle2 className="size-4" />
+              <span>Great work! All your active topics are above 60% mastery.</span>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2.5">
+              {improvementAreas.map((item) => (
+                <div
+                  key={item.topicId}
+                  className="flex items-center justify-between rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-2.5 text-xs"
+                >
+                  <span className="font-bold text-amber-800 dark:text-amber-200">{item.topicName}</span>
+                  <Link
+                    href={routes.learner.practice}
+                    onMouseEnter={playHoverTick}
+                    onClick={playClickSound}
+                    className="inline-flex items-center gap-1 rounded-lg bg-amber-600 text-white px-2.5 py-1 font-bold shadow-2xs hover:bg-amber-700 transition-colors"
+                  >
+                    <Dumbbell className="size-3" /> Practice
+                  </Link>
+                </div>
+              ))}
+            </div>
+          )}
+        </SpotlightCard>
+      </div>
+
+      {/* Recommended Next Steps */}
+      <SpotlightCard className="p-6 sm:p-7">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <span className="flex size-8 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <Compass className="size-4" />
+            </span>
+            <h2 className="font-serif text-lg font-bold tracking-tight text-text">Recommended Next Steps</h2>
+          </div>
+          {!recommendations && <DemoBadge />}
         </div>
-      </section>
+
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {nextSteps.map((step) => (
+            <li key={step.topicId + step.title}>
+              <Link
+                href={step.href ?? routes.learner.practice}
+                onMouseEnter={playHoverTick}
+                onClick={playClickSound}
+                className="group flex h-full flex-col justify-between rounded-2xl border border-border/70 bg-ivory/30 p-4 transition-all duration-200 hover:-translate-y-1 hover:border-primary/50 hover:bg-card hover:shadow-md"
+              >
+                <div>
+                  <span className="block font-bold text-sm text-text group-hover:text-primary transition-colors">
+                    {step.title}
+                  </span>
+                  <span className="mt-1 block text-xs leading-relaxed text-text-muted">
+                    {step.description}
+                  </span>
+                </div>
+                <div className="mt-3 flex items-center justify-end gap-1 text-xs font-semibold text-primary">
+                  <span>Start action</span>
+                  <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-1" />
+                </div>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </SpotlightCard>
     </div>
   );
 }

@@ -59,16 +59,18 @@ export function VarkPreferenceSelector({ value, onChange }: VarkPreferenceSelect
               aria-checked={isSelected}
               onClick={() => toggle(option.value)}
               className={cn(
-                "flex items-start gap-3 rounded-md border p-3 text-left transition-colors",
+                "flex items-start gap-3 rounded-xl border p-3.5 text-left transition-all duration-200",
                 isSelected
-                  ? "border-primary bg-[color-mix(in_srgb,var(--color-primary)_8%,white)]"
-                  : "border-border bg-white hover:bg-ivory",
+                  ? "border-primary bg-primary/10 ring-1 ring-primary/40 shadow-xs"
+                  : "border-border bg-card hover:border-primary/40 hover:bg-ivory",
               )}
             >
-              <Icon className={cn("mt-0.5 size-4 shrink-0", isSelected ? "text-primary" : "text-text-muted")} aria-hidden="true" />
+              <Icon className={cn("mt-0.5 size-4 shrink-0 transition-colors", isSelected ? "text-primary" : "text-text-muted")} aria-hidden="true" />
               <span>
-                <span className="block text-sm font-medium text-text">{option.label}</span>
-                <span className="block text-xs text-text-muted">{option.description}</span>
+                <span className={cn("block text-sm font-semibold transition-colors", isSelected ? "text-primary" : "text-text")}>
+                  {option.label}
+                </span>
+                <span className="block text-xs text-text-muted leading-relaxed">{option.description}</span>
               </span>
             </button>
           );

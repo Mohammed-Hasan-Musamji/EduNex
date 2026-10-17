@@ -45,9 +45,9 @@ function BlockShell({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-lg border border-border bg-white p-4">
-      <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-text-muted">
-        <Icon className="size-3.5" aria-hidden="true" />
+    <section className="rounded-2xl border border-border/80 bg-card p-5 shadow-xs transition-all">
+      <div className="mb-2.5 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-text-muted">
+        <Icon className="size-3.5 text-primary" aria-hidden="true" />
         {label}
       </div>
       {children}
@@ -209,8 +209,8 @@ function PracticeQuestionBlockView({
                 "rounded-md border px-3 py-2 text-left text-sm transition-colors",
                 showResult && isCorrect && "border-success bg-success-bg text-success",
                 showResult && isSelected && !isCorrect && "border-error bg-error-bg text-error",
-                !showResult && "border-border bg-white hover:bg-ivory",
-                showResult && !isSelected && !isCorrect && "border-border bg-white opacity-60",
+                !showResult && "border-border bg-card text-text hover:bg-ivory hover:border-primary/40",
+                showResult && !isSelected && !isCorrect && "border-border bg-card text-text opacity-60",
               )}
             >
               {option}

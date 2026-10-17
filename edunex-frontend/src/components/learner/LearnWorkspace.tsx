@@ -288,7 +288,7 @@ export function LearnWorkspace({ initialTopicId, initialVarkPreferences, initial
         )}
       </div>
 
-      <div className="min-h-[420px] rounded-lg border border-border bg-white lg:min-h-0">
+      <div className="min-h-[420px] rounded-2xl border border-border/80 bg-card shadow-xs lg:min-h-0">
         <AIChatPanel
           messages={session?.messages ?? []}
           onSend={handleSend}

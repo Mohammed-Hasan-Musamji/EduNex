@@ -200,6 +200,40 @@ export const healthApi = {
   readiness: () => apiRequest("/api/v1/health/ready", { schema: readinessSchema }),
 };
 
+export const authApi = {
+  login: async (input: { email: string; password: string }) => {
+    const result = await apiRequest("/api/v1/auth/login", {
+      method: "POST",
+      body: input,
+      schema: learnerBackendSchema,
+    });
+    return result.ok ? { ok: true as const, data: mapLearner(result.data) } : result;
+  },
+  register: async (input: { displayName: string; email: string; password: string }) => {
+    const result = await apiRequest("/api/v1/auth/register", {
+      method: "POST",
+      body: {
+        display_name: input.displayName,
+        email: input.email,
+        password: input.password,
+      },
+      schema: learnerBackendSchema,
+    });
+    return result.ok ? { ok: true as const, data: mapLearner(result.data) } : result;
+  },
+  logout: async () => {
+    return apiRequest("/api/v1/auth/logout", {
+      method: "POST",
+    });
+  },
+  me: async () => {
+    const result = await apiRequest("/api/v1/auth/me", {
+      schema: learnerBackendSchema,
+    });
+    return result.ok ? { ok: true as const, data: mapLearner(result.data) } : result;
+  },
+};
+
 export const learnerApi = {
   create: async (displayName: string) => {
     const result = await apiRequest("/api/v1/learners", {
@@ -211,6 +245,13 @@ export const learnerApi = {
   },
   get: async (learnerId: string) => {
     const result = await apiRequest(`/api/v1/learners/${learnerId}`, { schema: learnerBackendSchema });
+    if (!result.ok && result.error.kind === "unauthorized") {
+      const resumeResult = await apiRequest(`/api/v1/learners/${learnerId}/resume`, {
+        method: "POST",
+        schema: learnerBackendSchema,
+      });
+      return resumeResult.ok ? { ok: true as const, data: mapLearner(resumeResult.data) } : resumeResult;
+    }
     return result.ok ? { ok: true as const, data: mapLearner(result.data) } : result;
   },
   updatePreferences: async (learnerId: string, preferences: LearnerPreferences) => {

@@ -183,7 +183,7 @@ export default function KnowledgeBasePage() {
               id="kb-file"
               type="file"
               accept=".txt,.md,.markdown"
-              className="text-sm text-text file:mr-3 file:rounded-md file:border file:border-border file:bg-white file:px-3 file:py-1.5 file:text-sm"
+              className="text-sm text-text file:mr-3 file:rounded-md file:border file:border-border file:bg-card file:text-text file:px-3 file:py-1.5 file:text-sm"
             />
           </div>
           <Select label="Subject" value={subjectId} onChange={(event) => setSubjectId(event.target.value)} className="w-48">

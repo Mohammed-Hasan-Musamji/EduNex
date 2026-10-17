@@ -2,9 +2,29 @@ import { z } from "zod";
 
 export const PROMPT_MAX_LENGTH = 1000;
 
+export const loginSchema = z.object({
+  email: z.string().trim().email("Please enter a valid email address"),
+  password: z.string().min(1, "Password is required"),
+  role: z.enum(["learner", "admin"]),
+});
+export type LoginInput = z.infer<typeof loginSchema>;
+
+export const registerSchema = z
+  .object({
+    displayName: z.string().trim().min(2, "Name must be at least 2 characters").max(120, "Keep it under 120 characters"),
+    email: z.string().trim().email("Please enter a valid email address"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z.string().min(1, "Please confirm your password"),
+    role: z.enum(["learner", "admin"]),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+export type RegisterInput = z.infer<typeof registerSchema>;
+
 /**
- * There is no password-based authentication -- see backend/README.md
- * "Known limitations". Creating a profile only requires a display name.
+ * Creating a profile via name or legacy flow.
  */
 export const createProfileSchema = z.object({
   displayName: z.string().trim().min(1, "Enter a display name").max(120, "Keep it under 120 characters"),

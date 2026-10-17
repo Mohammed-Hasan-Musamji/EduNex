@@ -56,6 +56,8 @@ export function mapLearner(dto: LearnerDTO): Learner {
   return {
     id: dto.id,
     displayName: dto.display_name,
+    email: dto.email ?? undefined,
+    role: dto.role ?? "learner",
     preferences: mapPreferences(dto.preferences),
     createdAt: dto.created_at,
     updatedAt: dto.updated_at,
