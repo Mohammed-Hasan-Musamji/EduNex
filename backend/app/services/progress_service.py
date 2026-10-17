@@ -11,6 +11,7 @@ import uuid
 from datetime import UTC, datetime
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models.progress import LearnerProgress
@@ -33,10 +34,23 @@ class ProgressService:
 
     def _get_or_create(self, learner_id: uuid.UUID, topic_id: uuid.UUID) -> LearnerProgress:
         progress = self.get_progress(learner_id, topic_id)
-        if progress is None:
-            progress = LearnerProgress(learner_id=learner_id, topic_id=topic_id)
-            self.db.add(progress)
+        if progress is not None:
+            return progress
+
+        # Two concurrent attempts on a topic with no existing progress row can
+        # both reach here before either commits (e.g. parallel attempt
+        # submissions from the client). Only one insert can win the unique
+        # (learner_id, topic_id) constraint -- the loser re-reads instead of
+        # raising, rather than failing the whole request.
+        progress = LearnerProgress(learner_id=learner_id, topic_id=topic_id)
+        self.db.add(progress)
+        try:
             self.db.flush()
+        except IntegrityError:
+            self.db.rollback()
+            progress = self.get_progress(learner_id, topic_id)
+            if progress is None:
+                raise
         return progress
 
     def record_attempt(self, learner_id: uuid.UUID, topic_id: uuid.UUID, is_correct: bool) -> LearnerProgress:

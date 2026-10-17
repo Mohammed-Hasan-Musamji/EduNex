@@ -6,6 +6,7 @@ from pydantic import ValidationError
 
 from app.db.seed import seed_initial_data
 from app.schemas.lesson import Lesson
+from tests.conftest import register
 
 VALID_LESSON_BLOCKS = [
     {"type": "explanation", "heading": "What is a linked list?", "body": "A chain of nodes."},
@@ -51,7 +52,7 @@ def seeded_topic(db_session):
 
 @pytest.fixture
 def learner(client):
-    return client.post("/api/v1/learners", json={"display_name": "Ada"}).json()
+    return register(client, display_name="Ada")
 
 
 def test_seeded_subject_and_topic_are_exposed(client, seeded_topic):
@@ -89,14 +90,18 @@ def test_lesson_schema_rejects_unknown_block_type():
 def test_create_lesson_without_gemini_key_returns_503(client, seeded_topic, learner):
     response = client.post(
         "/api/v1/lessons",
-        json={
-            "learner_id": learner["id"],
-            "topic_id": seeded_topic["topic_id"],
-            "prompt": "Explain linked lists",
-        },
+        json={"topic_id": seeded_topic["topic_id"], "prompt": "Explain linked lists"},
     )
     assert response.status_code == 503
     assert response.json()["error"]["code"] == "SERVICE_UNAVAILABLE"
+
+
+def test_create_lesson_without_auth_returns_401(client, seeded_topic):
+    response = client.post(
+        "/api/v1/lessons",
+        json={"topic_id": seeded_topic["topic_id"], "prompt": "Explain linked lists"},
+    )
+    assert response.status_code == 401
 
 
 def test_create_lesson_with_mocked_gemini_succeeds(client, seeded_topic, learner):
@@ -108,7 +113,6 @@ def test_create_lesson_with_mocked_gemini_succeeds(client, seeded_topic, learner
         response = client.post(
             "/api/v1/lessons",
             json={
-                "learner_id": learner["id"],
                 "topic_id": seeded_topic["topic_id"],
                 "prompt": "Explain linked lists",
                 "vark_preferences": ["visual"],
@@ -130,11 +134,11 @@ def test_create_lesson_with_mocked_gemini_succeeds(client, seeded_topic, learner
     assert len(response.json()) == 1
 
 
-def test_create_lesson_missing_learner_returns_404(client, seeded_topic):
+def test_create_lesson_missing_topic_returns_404(client, learner):
     import uuid
 
     response = client.post(
         "/api/v1/lessons",
-        json={"learner_id": str(uuid.uuid4()), "topic_id": seeded_topic["topic_id"], "prompt": "Explain it"},
+        json={"topic_id": str(uuid.uuid4()), "prompt": "Explain it"},
     )
     assert response.status_code == 404

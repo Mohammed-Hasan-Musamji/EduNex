@@ -6,8 +6,9 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db
+from app.api.deps import get_db, verify_owner_or_admin
 from app.core.exceptions import ConflictError, NotFoundError
+from app.models.learner import Learner
 from app.models.lesson import LessonSession
 from app.models.saved_lesson import SavedLesson
 from app.schemas.saved_lesson import SavedLessonRead
@@ -30,7 +31,12 @@ def _to_read(saved: SavedLesson) -> SavedLessonRead:
 
 
 @router.post("/{lesson_id}", response_model=SavedLessonRead, status_code=status.HTTP_201_CREATED)
-def save_lesson(learner_id: uuid.UUID, lesson_id: uuid.UUID, db: Session = Depends(get_db)) -> SavedLessonRead:
+def save_lesson(
+    learner_id: uuid.UUID,
+    lesson_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    _: Learner = Depends(verify_owner_or_admin),
+) -> SavedLessonRead:
     lesson_session = db.get(LessonSession, lesson_id)
     if lesson_session is None or lesson_session.learner_id != learner_id:
         raise NotFoundError(f"Lesson session {lesson_id} was not found for this learner")
@@ -49,13 +55,20 @@ def save_lesson(learner_id: uuid.UUID, lesson_id: uuid.UUID, db: Session = Depen
 
 
 @router.get("", response_model=list[SavedLessonRead])
-def list_saved_lessons(learner_id: uuid.UUID, db: Session = Depends(get_db)) -> list[SavedLessonRead]:
+def list_saved_lessons(
+    learner_id: uuid.UUID, db: Session = Depends(get_db), _: Learner = Depends(verify_owner_or_admin)
+) -> list[SavedLessonRead]:
     stmt = select(SavedLesson).where(SavedLesson.learner_id == learner_id).order_by(SavedLesson.saved_at.desc())
     return [_to_read(saved) for saved in db.scalars(stmt)]
 
 
 @router.delete("/{lesson_id}", status_code=status.HTTP_204_NO_CONTENT)
-def remove_saved_lesson(learner_id: uuid.UUID, lesson_id: uuid.UUID, db: Session = Depends(get_db)) -> None:
+def remove_saved_lesson(
+    learner_id: uuid.UUID,
+    lesson_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    _: Learner = Depends(verify_owner_or_admin),
+) -> None:
     saved = db.scalar(
         select(SavedLesson).where(SavedLesson.learner_id == learner_id, SavedLesson.lesson_session_id == lesson_id)
     )

@@ -20,22 +20,17 @@ export const routes = {
 };
 
 /**
- * Builds the Learn with AI URL for a given topic. Only a topic identifier and
- * non-sensitive VARK preference keys are placed in the query string — never
- * learner-identifying or session-secret data.
+ * Builds the Learn with AI URL for starting a *new* topic. Only a topic
+ * identifier and non-sensitive VARK preference keys go in the query string —
+ * never learner-identifying data. To reopen an existing real lesson session,
+ * use buildResumeLessonUrl instead (a different query param, handled
+ * differently by LearnWorkspace).
  */
-export function buildLearnUrl(params: {
-  topicId: string;
-  vark?: string[];
-  sessionId?: string;
-}): string {
+export function buildLearnUrl(params: { topicId: string; vark?: string[] }): string {
   const search = new URLSearchParams();
   search.set("topic", params.topicId);
   if (params.vark && params.vark.length > 0) {
     search.set("vark", params.vark.join(","));
-  }
-  if (params.sessionId) {
-    search.set("session", params.sessionId);
   }
   return `${routes.learner.learn}?${search.toString()}`;
 }

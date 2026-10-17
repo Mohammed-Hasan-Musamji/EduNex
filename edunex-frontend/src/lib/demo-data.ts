@@ -140,7 +140,9 @@ export const demoRecentActivity: RecentActivity[] = [
  * LearnWorkspace.tsx.
  */
 export function generateDemoLesson(topicId: string, topicName: string, fallbackPrompt?: string): Lesson {
-  if (topicId === "linked-lists") {
+  // Matched by name, not id -- the real "Linked Lists" topic has a backend
+  // UUID id, not the old "linked-lists" slug.
+  if (topicName.toLowerCase() === "linked lists") {
     return {
       id: generateId("lesson"),
       topicId,

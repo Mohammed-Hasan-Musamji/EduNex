@@ -1,4 +1,4 @@
-def test_create_and_update_subject(client):
+def test_create_and_update_subject(client, admin):
     response = client.post(
         "/api/v1/admin/subjects", json={"name": "Operating Systems", "description": "Processes, memory, files."}
     )
@@ -21,7 +21,7 @@ def test_create_and_update_subject(client):
     assert any(s["id"] == subject_id for s in response.json())
 
 
-def test_create_subject_rejects_duplicate_name(client):
+def test_create_subject_rejects_duplicate_name(client, admin):
     first = client.post("/api/v1/admin/subjects", json={"name": "Physics", "description": "..."})
     assert first.status_code == 201
 
@@ -30,8 +30,16 @@ def test_create_subject_rejects_duplicate_name(client):
     assert second.json()["error"]["code"] == "CONFLICT"
 
 
-def test_update_missing_subject_returns_404(client):
+def test_update_missing_subject_returns_404(client, admin):
     import uuid
 
     response = client.patch(f"/api/v1/admin/subjects/{uuid.uuid4()}", json={"is_active": False})
     assert response.status_code == 404
+
+
+def test_create_subject_requires_admin(client):
+    from tests.conftest import register
+
+    register(client, display_name="Ada")
+    response = client.post("/api/v1/admin/subjects", json={"name": "Chemistry", "description": "..."})
+    assert response.status_code == 403

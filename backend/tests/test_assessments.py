@@ -1,6 +1,7 @@
 import pytest
 
 from app.db.seed import seed_initial_data
+from tests.conftest import register
 
 
 @pytest.fixture
@@ -16,7 +17,7 @@ def seeded_topic_id(db_session):
 
 @pytest.fixture
 def learner_id(client):
-    return client.post("/api/v1/learners", json={"display_name": "Ada"}).json()["id"]
+    return register(client, display_name="Ada")["id"]
 
 
 def test_questions_never_expose_correct_answer(client, seeded_topic_id):
@@ -37,7 +38,7 @@ def test_correct_multiple_choice_attempt_is_evaluated_server_side(client, seeded
     # server looks up the stored correct_answer itself.
     response = client.post(
         "/api/v1/assessments/attempts",
-        json={"learner_id": learner_id, "question_id": mc_question["id"], "submitted_answer": 1},
+        json={"question_id": mc_question["id"], "submitted_answer": 1},
     )
     assert response.status_code == 201
     body = response.json()
@@ -52,7 +53,7 @@ def test_incorrect_attempt_scores_zero(client, seeded_topic_id, learner_id):
 
     response = client.post(
         "/api/v1/assessments/attempts",
-        json={"learner_id": learner_id, "question_id": mc_question["id"], "submitted_answer": 0},
+        json={"question_id": mc_question["id"], "submitted_answer": 0},
     )
     assert response.status_code == 201
     body = response.json()
@@ -66,7 +67,7 @@ def test_attempt_updates_progress(client, seeded_topic_id, learner_id):
 
     client.post(
         "/api/v1/assessments/attempts",
-        json={"learner_id": learner_id, "question_id": mc_question["id"], "submitted_answer": 1},
+        json={"question_id": mc_question["id"], "submitted_answer": 1},
     )
 
     response = client.get(f"/api/v1/learners/{learner_id}/progress/{seeded_topic_id}")
@@ -83,7 +84,7 @@ def test_attempt_with_wrong_answer_type_is_rejected(client, seeded_topic_id, lea
 
     response = client.post(
         "/api/v1/assessments/attempts",
-        json={"learner_id": learner_id, "question_id": mc_question["id"], "submitted_answer": "not valid"},
+        json={"question_id": mc_question["id"], "submitted_answer": "not valid"},
     )
     assert response.status_code == 422
 
@@ -93,6 +94,6 @@ def test_attempt_on_missing_question_returns_404(client, learner_id):
 
     response = client.post(
         "/api/v1/assessments/attempts",
-        json={"learner_id": learner_id, "question_id": str(uuid.uuid4()), "submitted_answer": 0},
+        json={"question_id": str(uuid.uuid4()), "submitted_answer": 0},
     )
     assert response.status_code == 404

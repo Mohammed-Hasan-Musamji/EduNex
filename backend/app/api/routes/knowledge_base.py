@@ -1,8 +1,8 @@
 """Knowledge-base (academic document ingestion + retrieval) admin endpoints.
 
-Development-stage limitation: there is no authentication or authorization
-on these routes. They must not be exposed on a public deployment without
-adding access control first -- see README.md "Known limitations".
+Every route here requires an authenticated admin (see
+app/api/deps.py:require_admin) -- enforced server-side, not merely by
+hiding the admin page in the frontend.
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.ai.gemini_client import GeminiClient, get_gemini_client
-from app.api.deps import get_db
+from app.api.deps import get_db, require_admin
 from app.core.config import get_settings
 from app.core.exceptions import NotFoundError, ServiceUnavailableError
 from app.models.academic_document import AcademicDocument, DocumentContentType
@@ -31,7 +31,9 @@ from app.schemas.knowledge_base import (
     SearchResult,
 )
 
-router = APIRouter(prefix="/admin/knowledge-base", tags=["knowledge-base-admin"])
+router = APIRouter(
+    prefix="/admin/knowledge-base", tags=["knowledge-base-admin"], dependencies=[Depends(require_admin)]
+)
 
 
 def _to_document_read(document: AcademicDocument) -> DocumentRead:

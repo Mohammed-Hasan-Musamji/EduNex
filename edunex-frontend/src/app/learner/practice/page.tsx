@@ -95,13 +95,15 @@ export default function PracticePage() {
     setIsSubmitting(true);
 
     if (!assessment.isDemo && learner) {
-      const attempts = await Promise.all(
-        assessment.questions.map((q) => {
-          const answer = answers[q.id];
-          const submittedAnswer = q.type === "multiple_choice" ? answer.selectedOptionIndex! : answer.selectedBoolean!;
-          return assessmentsApi.submitAttempt({ learnerId: learner.id, questionId: q.id, submittedAnswer });
-        }),
-      );
+      // Submitted one at a time (not in parallel) -- each attempt updates
+      // the same learner+topic progress row, and sequential submission
+      // avoids relying on the backend to resolve concurrent writes to it.
+      const attempts = [];
+      for (const q of assessment.questions) {
+        const answer = answers[q.id];
+        const submittedAnswer = q.type === "multiple_choice" ? answer.selectedOptionIndex! : answer.selectedBoolean!;
+        attempts.push(await assessmentsApi.submitAttempt({ learnerId: learner.id, questionId: q.id, submittedAnswer }));
+      }
       const failed = attempts.find((a) => !a.ok);
       if (failed && !failed.ok) {
         showToast({ variant: "error", title: "Couldn't submit answers", description: failed.error.message });

@@ -24,6 +24,8 @@ import type { Subject } from "@/types/content";
 export default function SubjectsPage() {
   const router = useRouter();
   const { startSession } = useLearningSession();
+  const { learner } = useLearner();
+  const { showToast } = useToast();
 
   const [search, setSearch] = useState("");
   const [realSubjects, setRealSubjects] = useState<Subject[] | null>(null);
@@ -75,7 +77,7 @@ export default function SubjectsPage() {
     setTopicError(null);
   };
 
-  const handleStartLearning = () => {
+  const handleStartLearning = async () => {
     const parsed = startLearningSchema.safeParse({ topicId: selectedTopicId ?? "", varkPreferences });
     if (!parsed.success) {
       setTopicError(parsed.error.issues[0]?.message ?? "Select a topic to continue");
@@ -87,8 +89,22 @@ export default function SubjectsPage() {
     const topic = selectedSubject?.topics.find((t) => t.id === parsed.data.topicId);
     const topicName = topic?.name ?? parsed.data.topicId;
 
-    const session = startSession(parsed.data.topicId, topicName, parsed.data.varkPreferences);
-    router.push(buildLearnUrl({ topicId: parsed.data.topicId, vark: parsed.data.varkPreferences, sessionId: session.id }));
+    if (learner && parsed.data.varkPreferences.length > 0) {
+      const prefResult = await learnerApi.updatePreferences(learner.id, {
+        ...learner.preferences,
+        varkPreferences: parsed.data.varkPreferences,
+      });
+      if (prefResult.ok) {
+        showToast({ variant: "success", title: "Preferences updated", description: "Your learning preferences have been saved." });
+      }
+    }
+
+    startSession(parsed.data.topicId, topicName, parsed.data.varkPreferences);
+    // Note: `sessionId` here would be a local (non-backend) id -- the `session`
+    // query param is reserved for resuming a *real* backend lesson_session_id
+    // (see buildResumeLessonUrl, used by Saved Lessons). A fresh topic start
+    // only needs `topic`/`vark`; LearnWorkspace creates the real session itself.
+    router.push(buildLearnUrl({ topicId: parsed.data.topicId, vark: parsed.data.varkPreferences }));
   };
 
   return (

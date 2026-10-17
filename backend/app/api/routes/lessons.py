@@ -1,11 +1,17 @@
-"""Lesson session endpoints: create, fetch, list, and resume."""
+"""Lesson session endpoints: create, fetch, list, and resume.
+
+learner_id is never accepted from the client for creation -- it is always
+the authenticated caller. Fetch/resume verify the session belongs to the
+caller (or that the caller is an admin).
+"""
 
 import uuid
 
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db
+from app.api.deps import get_current_learner, get_db, verify_owner_or_admin
+from app.models.learner import Learner
 from app.models.lesson import LessonSession
 from app.schemas.lesson import (
     LessonSessionCreate,
@@ -30,24 +36,34 @@ def _summary(session: LessonSession) -> LessonSessionSummary:
 
 
 @router.post("/lessons", response_model=LessonSessionRead, status_code=status.HTTP_201_CREATED)
-def create_lesson(payload: LessonSessionCreate, db: Session = Depends(get_db)) -> LessonSessionRead:
-    session = LessonService(db).create_session(payload)
+def create_lesson(
+    payload: LessonSessionCreate,
+    db: Session = Depends(get_db),
+    current: Learner = Depends(get_current_learner),
+) -> LessonSessionRead:
+    session = LessonService(db).create_session(current, payload)
     return LessonSessionRead.model_validate(to_lesson_session_read(session))
 
 
 @router.get("/lessons/{lesson_id}", response_model=LessonSessionRead)
-def get_lesson(lesson_id: uuid.UUID, db: Session = Depends(get_db)) -> LessonSessionRead:
-    session = LessonService(db).get_session(lesson_id)
+def get_lesson(
+    lesson_id: uuid.UUID, db: Session = Depends(get_db), current: Learner = Depends(get_current_learner)
+) -> LessonSessionRead:
+    session = LessonService(db).get_session_for_owner(lesson_id, current)
     return LessonSessionRead.model_validate(to_lesson_session_read(session))
 
 
 @router.post("/lessons/{lesson_id}/resume", response_model=LessonSessionRead)
-def resume_lesson(lesson_id: uuid.UUID, db: Session = Depends(get_db)) -> LessonSessionRead:
-    session = LessonService(db).resume_session(lesson_id)
+def resume_lesson(
+    lesson_id: uuid.UUID, db: Session = Depends(get_db), current: Learner = Depends(get_current_learner)
+) -> LessonSessionRead:
+    session = LessonService(db).resume_session(lesson_id, current)
     return LessonSessionRead.model_validate(to_lesson_session_read(session))
 
 
 @router.get("/learners/{learner_id}/lessons", response_model=list[LessonSessionSummary])
-def list_learner_lessons(learner_id: uuid.UUID, db: Session = Depends(get_db)) -> list[LessonSessionSummary]:
+def list_learner_lessons(
+    learner_id: uuid.UUID, db: Session = Depends(get_db), _: Learner = Depends(verify_owner_or_admin)
+) -> list[LessonSessionSummary]:
     sessions = LessonService(db).list_for_learner(learner_id)
     return [_summary(session) for session in sessions]

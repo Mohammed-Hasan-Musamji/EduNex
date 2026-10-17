@@ -45,10 +45,14 @@ export function LearnWorkspace({ initialTopicId, initialVarkPreferences, initial
     null,
   );
   const [realTopics, setRealTopics] = useState<Topic[]>([]);
+  const [topicsLoaded, setTopicsLoaded] = useState(false);
   const hasHandledInitialTopic = useRef(false);
 
   useEffect(() => {
-    void listAllRealTopics().then(setRealTopics);
+    void listAllRealTopics().then((topics) => {
+      setRealTopics(topics);
+      setTopicsLoaded(true);
+    });
   }, []);
 
   const resolveTopic = (topicId: string, fallbackName: string): { id: string; name: string; isReal: boolean } => {
@@ -157,7 +161,10 @@ export function LearnWorkspace({ initialTopicId, initialVarkPreferences, initial
   };
 
   useEffect(() => {
-    if (isRestoring || hasHandledInitialTopic.current) return;
+    // Wait for the real-topics list before resolving initialTopicId, so a
+    // real backend topic is never mistaken for a demo-only one just because
+    // this fetch hasn't resolved yet.
+    if (isRestoring || !topicsLoaded || hasHandledInitialTopic.current) return;
     hasHandledInitialTopic.current = true;
 
     if (initialLessonSessionId) {
@@ -184,7 +191,7 @@ export function LearnWorkspace({ initialTopicId, initialVarkPreferences, initial
       setView("whiteboard");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isRestoring, realTopics.length]);
+  }, [isRestoring, topicsLoaded]);
 
   const handleSend = async (text: string): Promise<boolean> => {
     if (isGenerating) return false;

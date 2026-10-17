@@ -1,10 +1,8 @@
 """Learner profile and preference business logic.
 
-Development-stage limitation: there is no authentication here. Any caller
-that knows a learner_id can read or modify that learner's profile and
-preferences. This is acceptable for an MVP developed against a trusted
-frontend during a hackathon, but must not be treated as production-ready
-access control.
+Ownership enforcement (a caller may only read/modify their own profile,
+unless they are an admin) happens in the route layer via
+app/api/deps.py:verify_owner_or_admin -- not here.
 """
 
 import uuid
@@ -13,19 +11,12 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFoundError
 from app.models.learner import Learner
-from app.schemas.learner import LearnerCreate, LearnerPreferences, LearnerUpdate
+from app.schemas.learner import LearnerPreferences, LearnerUpdate
 
 
 class LearnerService:
     def __init__(self, db: Session) -> None:
         self.db = db
-
-    def create(self, data: LearnerCreate) -> Learner:
-        learner = Learner(display_name=data.display_name, preferences=data.preferences.model_dump(mode="json"))
-        self.db.add(learner)
-        self.db.commit()
-        self.db.refresh(learner)
-        return learner
 
     def get(self, learner_id: uuid.UUID) -> Learner:
         learner = self.db.get(Learner, learner_id)

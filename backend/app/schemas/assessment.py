@@ -26,7 +26,9 @@ class QuestionPublic(ORMModel):
 
 
 class AttemptCreate(BaseModel):
-    learner_id: uuid.UUID
+    """learner_id is intentionally absent -- the route derives it from the
+    authenticated session, never from client input."""
+
     question_id: uuid.UUID
     # Multiple-choice: option index. True/false: boolean. Validated against
     # the question's actual type on the server in assessment_service.

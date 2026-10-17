@@ -1,8 +1,8 @@
 """Learner profile and preference schemas.
 
-Important limitation: this MVP has no authentication system. `learner_id`
-is a development-stage identifier, not proof of identity -- any client that
-knows (or guesses) a learner_id can act as that learner. See README.md.
+Accounts are created via POST /api/v1/auth/register (see app/schemas/auth.py)
+-- not here. `LearnerRead` is also used as the authenticated-user response
+shape for GET /api/v1/auth/me.
 """
 
 from __future__ import annotations
@@ -13,6 +13,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
+from app.models.learner import LearnerRole
 from app.schemas.common import ORMModel
 
 
@@ -31,11 +32,6 @@ class LearnerPreferences(BaseModel):
     learning_goal: str | None = Field(default=None, max_length=500)
 
 
-class LearnerCreate(BaseModel):
-    display_name: str = Field(min_length=1, max_length=120)
-    preferences: LearnerPreferences = Field(default_factory=LearnerPreferences)
-
-
 class LearnerUpdate(BaseModel):
     display_name: str | None = Field(default=None, min_length=1, max_length=120)
     preferences: LearnerPreferences | None = None
@@ -44,6 +40,8 @@ class LearnerUpdate(BaseModel):
 class LearnerRead(ORMModel):
     id: uuid.UUID
     display_name: str
+    email: str
+    role: LearnerRole
     preferences: LearnerPreferences
     created_at: datetime
     updated_at: datetime

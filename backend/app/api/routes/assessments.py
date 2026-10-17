@@ -3,6 +3,8 @@
 Question responses never include the correct answer or explanation --
 those are only revealed in the AttemptResult after a learner submits an
 answer, which is evaluated on the server (see AssessmentService._evaluate).
+learner_id is never accepted from the client for submission -- it is always
+the authenticated caller.
 """
 
 import uuid
@@ -11,8 +13,9 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db
+from app.api.deps import get_current_learner, get_db, verify_owner_or_admin
 from app.models.assessment import AssessmentAttempt
+from app.models.learner import Learner
 from app.schemas.assessment import (
     AttemptCreate,
     AttemptRead,
@@ -31,8 +34,12 @@ def list_topic_questions(topic_id: uuid.UUID, db: Session = Depends(get_db)) -> 
 
 
 @router.post("/assessments/attempts", response_model=AttemptResult, status_code=status.HTTP_201_CREATED)
-def submit_attempt(payload: AttemptCreate, db: Session = Depends(get_db)) -> AttemptResult:
-    attempt, explanation = AssessmentService(db).submit_attempt(payload)
+def submit_attempt(
+    payload: AttemptCreate,
+    db: Session = Depends(get_db),
+    current: Learner = Depends(get_current_learner),
+) -> AttemptResult:
+    attempt, explanation = AssessmentService(db).submit_attempt(current, payload)
     return AttemptResult(
         attempt_id=attempt.id,
         question_id=attempt.question_id,
@@ -45,7 +52,9 @@ def submit_attempt(payload: AttemptCreate, db: Session = Depends(get_db)) -> Att
 
 
 @router.get("/learners/{learner_id}/assessments", response_model=list[AttemptRead])
-def list_learner_attempts(learner_id: uuid.UUID, db: Session = Depends(get_db)) -> list[AttemptRead]:
+def list_learner_attempts(
+    learner_id: uuid.UUID, db: Session = Depends(get_db), _: Learner = Depends(verify_owner_or_admin)
+) -> list[AttemptRead]:
     stmt = (
         select(AssessmentAttempt)
         .where(AssessmentAttempt.learner_id == learner_id)

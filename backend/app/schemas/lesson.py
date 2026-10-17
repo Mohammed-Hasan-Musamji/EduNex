@@ -138,7 +138,9 @@ class Lesson(BaseModel):
 
 
 class LessonSessionCreate(BaseModel):
-    learner_id: uuid.UUID
+    """learner_id is intentionally absent -- the route derives it from the
+    authenticated session, never from client input."""
+
     topic_id: uuid.UUID
     prompt: str = Field(min_length=1, max_length=1000)
     vark_preferences: list[VarkPreference] = Field(default_factory=list)

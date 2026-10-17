@@ -72,3 +72,35 @@ def client(db_session):
 @pytest.fixture
 def new_uuid() -> uuid.UUID:
     return uuid.uuid4()
+
+
+def register(client: TestClient, display_name: str = "Ada", email: str | None = None, password: str = "correct-horse-1"):
+    """Registers a learner and leaves the TestClient holding its session
+    cookie, so subsequent requests on the same client are authenticated as
+    this learner. Returns the LearnerRead JSON body."""
+    email = email or f"{uuid.uuid4().hex[:12]}@example.com"
+    response = client.post(
+        "/api/v1/auth/register",
+        json={"display_name": display_name, "email": email, "password": password},
+    )
+    assert response.status_code == 201, response.text
+    return response.json()
+
+
+def make_admin(db_session, learner_id: str) -> None:
+    """Test-only promotion to admin -- there is intentionally no public API
+    for this (see backend/README.md)."""
+    from app.models.learner import Learner, LearnerRole
+
+    learner = db_session.get(Learner, uuid.UUID(learner_id))
+    learner.role = LearnerRole.admin
+    db_session.commit()
+
+
+@pytest.fixture
+def admin(client, db_session):
+    """Registers an account and promotes it to admin; the shared `client`
+    fixture holds its session cookie afterward."""
+    account = register(client, display_name="Admin", email=f"admin-{uuid.uuid4().hex[:8]}@example.com")
+    make_admin(db_session, account["id"])
+    return account

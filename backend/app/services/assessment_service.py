@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFoundError, ValidationAppError
 from app.models.assessment import AssessmentAttempt, AssessmentQuestion, QuestionType
+from app.models.learner import Learner
 from app.models.topic import Topic
 from app.schemas.assessment import AttemptCreate
 from app.services.progress_service import ProgressService
@@ -30,7 +31,7 @@ class AssessmentService:
         stmt = select(AssessmentQuestion).where(AssessmentQuestion.topic_id == topic_id)
         return list(self.db.scalars(stmt))
 
-    def submit_attempt(self, data: AttemptCreate) -> tuple[AssessmentAttempt, str]:
+    def submit_attempt(self, learner: Learner, data: AttemptCreate) -> tuple[AssessmentAttempt, str]:
         question = self.db.get(AssessmentQuestion, data.question_id)
         if question is None:
             raise NotFoundError(f"Question {data.question_id} was not found")
@@ -39,7 +40,7 @@ class AssessmentService:
         score = 100.0 if is_correct else 0.0
 
         attempt = AssessmentAttempt(
-            learner_id=data.learner_id,
+            learner_id=learner.id,
             question_id=data.question_id,
             submitted_answer=data.submitted_answer,
             is_correct=is_correct,
@@ -50,7 +51,7 @@ class AssessmentService:
         self.db.commit()
         self.db.refresh(attempt)
 
-        ProgressService(self.db).record_attempt(data.learner_id, question.topic_id, is_correct)
+        ProgressService(self.db).record_attempt(learner.id, question.topic_id, is_correct)
 
         return attempt, question.explanation
 

@@ -9,6 +9,12 @@ from app.core.logging import configure_logging
 configure_logging()
 settings = get_settings()
 
+if settings.environment != "development" and settings.secret_key == "change-me-generate-a-real-random-secret":
+    raise RuntimeError(
+        "SECRET_KEY is still the placeholder default outside of development. "
+        "Generate a real secret (see .env.example) before starting in this environment."
+    )
+
 app = FastAPI(title="EduNex API")
 
 app.add_middleware(

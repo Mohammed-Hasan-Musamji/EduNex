@@ -10,8 +10,9 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db
+from app.api.deps import get_db, require_admin
 from app.core.exceptions import ConflictError, NotFoundError
+from app.models.learner import Learner
 from app.models.subject import Subject
 from app.models.topic import Topic
 from app.schemas.subject import SubjectCreate, SubjectDetail, SubjectRead, SubjectUpdate, TopicRead
@@ -53,8 +54,9 @@ def get_topic(topic_id: uuid.UUID, db: Session = Depends(get_db)) -> Topic:
 
 
 @router.post("/admin/subjects", response_model=SubjectRead, status_code=status.HTTP_201_CREATED)
-def create_subject(payload: SubjectCreate, db: Session = Depends(get_db)) -> Subject:
-    """Development-only: no authentication/authorization is enforced here."""
+def create_subject(
+    payload: SubjectCreate, db: Session = Depends(get_db), _: Learner = Depends(require_admin)
+) -> Subject:
     slug = slugify(payload.name)
     if db.scalar(select(Subject).where(Subject.slug == slug)) is not None:
         raise ConflictError(f"A subject named '{payload.name}' already exists")
@@ -67,8 +69,12 @@ def create_subject(payload: SubjectCreate, db: Session = Depends(get_db)) -> Sub
 
 
 @router.patch("/admin/subjects/{subject_id}", response_model=SubjectRead)
-def update_subject(subject_id: uuid.UUID, payload: SubjectUpdate, db: Session = Depends(get_db)) -> Subject:
-    """Development-only: no authentication/authorization is enforced here."""
+def update_subject(
+    subject_id: uuid.UUID,
+    payload: SubjectUpdate,
+    db: Session = Depends(get_db),
+    _: Learner = Depends(require_admin),
+) -> Subject:
     subject = db.get(Subject, subject_id)
     if subject is None:
         raise NotFoundError(f"Subject {subject_id} was not found")

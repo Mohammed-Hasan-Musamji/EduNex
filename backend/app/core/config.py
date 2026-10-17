@@ -22,6 +22,12 @@ class Settings(BaseSettings):
     # --- CORS ---
     cors_origins: str = "http://localhost:3000"
 
+    # --- Authentication ---
+    secret_key: str = "change-me-generate-a-real-random-secret"
+    access_token_expire_minutes: int = 10080  # 7 days
+    session_cookie_name: str = "edunex_session"
+    session_cookie_secure: bool = False
+
     # --- Gemini ---
     gemini_api_key: str | None = None
     gemini_model: str = "gemini-2.5-flash"

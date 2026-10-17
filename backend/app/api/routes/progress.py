@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db
+from app.api.deps import get_db, verify_owner_or_admin
 from app.core.exceptions import NotFoundError
 from app.models.subject import Subject
 from app.models.topic import Topic
@@ -14,7 +14,7 @@ from app.schemas.progress import ProgressRead, Recommendation
 from app.services.progress_service import ProgressService
 from app.services.recommendation_service import recommend_for_topic
 
-router = APIRouter(prefix="/learners/{learner_id}", tags=["progress"])
+router = APIRouter(prefix="/learners/{learner_id}", tags=["progress"], dependencies=[Depends(verify_owner_or_admin)])
 
 
 def _to_progress_read(progress, topic_name: str) -> ProgressRead:

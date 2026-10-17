@@ -4,6 +4,7 @@ from unittest.mock import patch
 import pytest
 
 from app.db.seed import seed_initial_data
+from tests.conftest import register
 from tests.test_lessons import VALID_LESSON_BLOCKS
 
 
@@ -16,7 +17,7 @@ def ready_lesson(client, db_session):
     subject = db_session.query(Subject).first()
     topic = db_session.query(Topic).filter(Topic.subject_id == subject.id).first()
 
-    learner_id = client.post("/api/v1/learners", json={"display_name": "Ada"}).json()["id"]
+    learner_id = register(client, display_name="Ada")["id"]
 
     fake_lesson = {
         "title": "Understanding Linked Lists",
@@ -31,7 +32,7 @@ def ready_lesson(client, db_session):
     ):
         response = client.post(
             "/api/v1/lessons",
-            json={"learner_id": learner_id, "topic_id": str(topic.id), "prompt": "Explain linked lists"},
+            json={"topic_id": str(topic.id), "prompt": "Explain linked lists"},
         )
     lesson_id = response.json()["id"]
     return {"learner_id": learner_id, "lesson_id": lesson_id}

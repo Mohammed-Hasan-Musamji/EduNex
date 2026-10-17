@@ -1,6 +1,10 @@
+import uuid
+
 import pytest
 
 from app.db.seed import seed_initial_data
+from app.services.progress_service import ProgressService
+from tests.conftest import register
 
 
 @pytest.fixture
@@ -16,7 +20,7 @@ def seeded_topic_id(db_session):
 
 @pytest.fixture
 def learner_id(client):
-    return client.post("/api/v1/learners", json={"display_name": "Ada"}).json()["id"]
+    return register(client, display_name="Ada")["id"]
 
 
 def test_progress_for_new_learner_is_a_safe_default(client, seeded_topic_id, learner_id):
@@ -49,10 +53,56 @@ def test_recommendation_switches_to_review_after_repeated_wrong_answers(client, 
     for _ in range(2):
         client.post(
             "/api/v1/assessments/attempts",
-            json={"learner_id": learner_id, "question_id": mc_question["id"], "submitted_answer": 0},
+            json={"question_id": mc_question["id"], "submitted_answer": 0},
         )
 
     response = client.get(f"/api/v1/learners/{learner_id}/recommendations")
     assert response.status_code == 200
     topic_rec = next(r for r in response.json() if r["topic_id"] == seeded_topic_id)
     assert topic_rec["recommendation_type"] == "review"
+
+
+def test_concurrent_first_attempts_do_not_violate_unique_constraint(seeded_topic_id, learner_id):
+    """Regression test: two requests racing to create the first progress row
+    for the same (learner, topic) must not crash with a unique-constraint
+    IntegrityError. Uses real threads + a barrier so both sessions genuinely
+    see "no row yet" before either commits -- the exact interleaving that
+    caused the original bug (discovered via two parallel attempt submissions
+    from the frontend)."""
+    import threading
+
+    from tests.conftest import TestingSessionLocal
+
+    topic_id = uuid.UUID(seeded_topic_id)
+    learner_uuid = uuid.UUID(learner_id)
+    barrier = threading.Barrier(2)
+    errors: list[Exception] = []
+
+    def race(is_correct: bool) -> None:
+        session = TestingSessionLocal()
+        try:
+            service = ProgressService(session)
+            assert service.get_progress(learner_uuid, topic_id) is None
+            barrier.wait()  # both threads confirm "no row" before either inserts
+            service.record_attempt(learner_uuid, topic_id, is_correct)
+        except Exception as exc:  # captured for the main thread to assert on
+            errors.append(exc)
+        finally:
+            session.close()
+
+    threads = [threading.Thread(target=race, args=(True,)), threading.Thread(target=race, args=(False,))]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(timeout=5)
+
+    assert not errors, f"record_attempt raised under concurrent first-insert race: {errors}"
+
+    verify_session = TestingSessionLocal()
+    try:
+        final = ProgressService(verify_session).get_progress(learner_uuid, topic_id)
+        assert final is not None
+        assert final.attempts_count == 2
+        assert final.correct_count == 1
+    finally:
+        verify_session.close()

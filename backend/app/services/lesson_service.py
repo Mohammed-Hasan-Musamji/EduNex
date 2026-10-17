@@ -15,8 +15,8 @@ from sqlalchemy.orm import Session
 
 from app.ai.gemini_client import GeminiClient
 from app.ai.lesson_generator import LessonGenerator
-from app.core.exceptions import NotFoundError, ServiceUnavailableError
-from app.models.learner import Learner
+from app.core.exceptions import ForbiddenError, NotFoundError, ServiceUnavailableError
+from app.models.learner import Learner, LearnerRole
 from app.models.lesson import LessonSession, LessonSessionStatus
 from app.models.topic import Topic
 from app.schemas.lesson import Lesson, LessonSessionCreate
@@ -27,16 +27,13 @@ class LessonService:
         self.db = db
         self.generator = generator or LessonGenerator(GeminiClient())
 
-    def create_session(self, data: LessonSessionCreate) -> LessonSession:
-        learner = self.db.get(Learner, data.learner_id)
-        if learner is None:
-            raise NotFoundError(f"Learner {data.learner_id} was not found")
+    def create_session(self, learner: Learner, data: LessonSessionCreate) -> LessonSession:
         topic = self.db.get(Topic, data.topic_id)
         if topic is None:
             raise NotFoundError(f"Topic {data.topic_id} was not found")
 
         session = LessonSession(
-            learner_id=data.learner_id,
+            learner_id=learner.id,
             topic_id=data.topic_id,
             prompt=data.prompt,
             vark_preferences=[v.value for v in data.vark_preferences],
@@ -55,6 +52,12 @@ class LessonService:
             raise NotFoundError(f"Lesson session {lesson_id} was not found")
         return session
 
+    def get_session_for_owner(self, lesson_id: uuid.UUID, current: Learner) -> LessonSession:
+        session = self.get_session(lesson_id)
+        if session.learner_id != current.id and current.role != LearnerRole.admin:
+            raise ForbiddenError("You do not have permission to access this lesson session.")
+        return session
+
     def list_for_learner(self, learner_id: uuid.UUID) -> list[LessonSession]:
         stmt = (
             select(LessonSession)
@@ -63,8 +66,8 @@ class LessonService:
         )
         return list(self.db.scalars(stmt))
 
-    def resume_session(self, lesson_id: uuid.UUID) -> LessonSession:
-        session = self.get_session(lesson_id)
+    def resume_session(self, lesson_id: uuid.UUID, current: Learner) -> LessonSession:
+        session = self.get_session_for_owner(lesson_id, current)
         if session.status == LessonSessionStatus.failed:
             topic = self.db.get(Topic, session.topic_id)
             if topic is not None:
