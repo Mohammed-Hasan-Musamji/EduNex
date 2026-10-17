@@ -100,7 +100,7 @@ export default function AdminCoursesPage() {
         <form
           onSubmit={handleSubmit(onCreate)}
           noValidate
-          className="mb-6 flex flex-col gap-4 rounded-lg border border-border bg-white p-4"
+          className="mb-6 flex flex-col gap-4 rounded-lg border border-border bg-card p-4"
         >
           <Input label="Subject name" error={errors.name?.message} {...register("name")} />
           <Textarea label="Description" rows={3} error={errors.description?.message} {...register("description")} />
@@ -133,7 +133,7 @@ export default function AdminCoursesPage() {
       ) : (
         <ul className="mt-6 flex flex-col gap-3">
           {filtered.map((subject) => (
-            <li key={subject.id} className="rounded-lg border border-border bg-white p-4">
+            <li key={subject.id} className="rounded-lg border border-border bg-card p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">

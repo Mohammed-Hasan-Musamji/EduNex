@@ -17,7 +17,7 @@ from app.services.auth_service import AuthService
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-def _set_session_cookie(response: Response, token: str) -> None:
+def set_session_cookie(response: Response, token: str) -> None:
     settings = get_settings()
     response.set_cookie(
         key=settings.session_cookie_name,
@@ -28,6 +28,10 @@ def _set_session_cookie(response: Response, token: str) -> None:
         max_age=settings.access_token_expire_minutes * 60,
         path="/",
     )
+
+
+_set_session_cookie = set_session_cookie
+
 
 
 @router.post("/register", response_model=LearnerRead, status_code=status.HTTP_201_CREATED)

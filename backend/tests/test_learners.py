@@ -9,6 +9,20 @@ def test_register_creates_account_with_default_preferences(client):
     assert body["preferences"]["vark_preferences"] == []
 
 
+def test_post_learners_creates_profile_and_sets_session_cookie(client):
+    response = client.post("/api/v1/learners", json={"display_name": "Alan Turing"})
+    assert response.status_code == 201
+    body = response.json()
+    assert body["display_name"] == "Alan Turing"
+    assert body["role"] == "learner"
+    # verify session cookie was set and allows authenticated access to profile
+    learner_id = body["id"]
+    me_response = client.get(f"/api/v1/learners/{learner_id}")
+    assert me_response.status_code == 200
+    assert me_response.json()["display_name"] == "Alan Turing"
+
+
+
 def test_register_rejects_duplicate_email(client):
     register(client, display_name="Ada", email="dup@example.com")
     response = client.post(

@@ -15,16 +15,20 @@ export function EmptyState({ icon: Icon = Inbox, title, description, action, cla
   return (
     <div
       className={cn(
-        "flex flex-col items-center gap-3 rounded-lg border border-dashed border-border bg-white px-6 py-10 text-center",
+        "flex flex-col items-center justify-center gap-3.5 rounded-3xl border border-dashed border-border/80 bg-card p-8 sm:p-12 text-center shadow-xs backdrop-blur-md transition-all duration-300",
         className,
       )}
     >
-      <Icon className="size-8 text-text-muted" aria-hidden="true" />
-      <div>
-        <p className="font-medium text-text">{title}</p>
-        {description && <p className="mt-1 text-sm text-text-muted">{description}</p>}
+      <div className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-xs ring-1 ring-primary/20 transition-transform duration-300 hover:scale-110 hover:rotate-6">
+        <Icon className="size-7" aria-hidden="true" />
       </div>
-      {action}
+
+      <div className="max-w-md space-y-1.5">
+        <p className="font-serif text-lg font-bold tracking-tight text-text">{title}</p>
+        {description && <p className="text-sm leading-relaxed text-text-muted">{description}</p>}
+      </div>
+
+      {action && <div className="mt-2">{action}</div>}
     </div>
   );
 }

@@ -17,12 +17,12 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
       <label
         htmlFor={checkboxId}
         className={cn(
-          "flex cursor-pointer items-start gap-3 rounded-md border border-border bg-white p-3",
-          "has-[:checked]:border-primary has-[:checked]:bg-[color-mix(in_srgb,var(--color-primary)_8%,white)]",
+          "flex cursor-pointer items-start gap-3 rounded-md border border-border bg-card p-3",
+          "has-[:checked]:border-primary has-[:checked]:bg-[color-mix(in_srgb,var(--color-primary)_8%,var(--color-card))]",
           className,
         )}
       >
-        <span className="relative mt-0.5 flex size-5 shrink-0 items-center justify-center rounded border border-border bg-white">
+        <span className="relative mt-0.5 flex size-5 shrink-0 items-center justify-center rounded border border-border bg-card">
           <input
             ref={ref}
             id={checkboxId}

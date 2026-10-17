@@ -19,6 +19,8 @@ export const learnerPreferencesBackendSchema = z.object({
 export const learnerBackendSchema = z.object({
   id: z.string(),
   display_name: z.string(),
+  email: z.string().optional().nullable(),
+  role: z.enum(["learner", "admin"]).optional(),
   preferences: learnerPreferencesBackendSchema,
   created_at: z.string(),
   updated_at: z.string(),

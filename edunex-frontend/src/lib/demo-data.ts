@@ -116,8 +116,10 @@ export const demoNextSteps: NextStepRecommendation[] = [
 ];
 
 export const demoMastery: MasteryIndicator[] = [
-  { topicId: "newtons-laws", topicName: "Newton's Laws", masteryLevel: 41 },
-  { topicId: "limits", topicName: "Limits", masteryLevel: 85 },
+  { topicId: "linked-list-basics", topicName: "Linked List Basics", masteryLevel: 92 },
+  { topicId: "pointer-updates", topicName: "Pointer Updates & Pointer Chasing", masteryLevel: 68 },
+  { topicId: "edge-cases", topicName: "Edge Case Handling (Empty List, 1-Node List)", masteryLevel: 45 },
+  { topicId: "big-o-complexity", topicName: "Big-O Asymptotic Complexity", masteryLevel: 88 },
 ];
 
 export const demoRecentActivity: RecentActivity[] = [

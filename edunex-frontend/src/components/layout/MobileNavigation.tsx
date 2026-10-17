@@ -24,21 +24,26 @@ export function MobileNavigation({ variant, isOpen, onClose }: MobileNavigationP
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-40 lg:hidden">
+    <div className="fixed inset-0 z-50 lg:hidden">
       <button
         type="button"
         aria-label="Close navigation menu"
         onClick={onClose}
-        className="absolute inset-0 bg-black/30"
+        className="absolute inset-0 bg-black/40 backdrop-blur-xs transition-opacity duration-300"
       />
-      <div role="dialog" aria-modal="true" aria-label="Navigation menu" className="relative h-full w-72 bg-white shadow-xl">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Navigation menu"
+        className="relative h-full w-72 max-w-[85vw] bg-card border-r border-border shadow-2xl safe-paddings flex flex-col animate-fade-scale"
+      >
         <button
           type="button"
           onClick={onClose}
           aria-label="Close navigation menu"
-          className="absolute right-3 top-3 flex size-8 items-center justify-center rounded-md text-text-muted hover:bg-ivory hover:text-text"
+          className="absolute right-3 top-3 flex size-9 items-center justify-center rounded-lg text-text-muted hover:bg-ivory hover:text-text transition-colors touch-target"
         >
-          <X className="size-4" aria-hidden="true" />
+          <X className="size-5" aria-hidden="true" />
         </button>
         <AppSidebar variant={variant} onNavigate={onClose} />
       </div>

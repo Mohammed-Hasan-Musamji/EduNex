@@ -9,7 +9,9 @@ other subjects/topics are implemented.
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.security import hash_password
 from app.models.assessment import AssessmentQuestion, QuestionType
+from app.models.learner import Learner, LearnerRole
 from app.models.subject import Subject
 from app.models.topic import DifficultyLevel, Topic
 
@@ -93,8 +95,42 @@ def _seed_questions(db: Session, topic: Topic) -> None:
         db.add(AssessmentQuestion(topic_id=topic.id, **item))
 
 
+def _seed_default_users(db: Session) -> None:
+    admin_email = "admin@edunex.com"
+    admin = db.scalar(select(Learner).where(Learner.email == admin_email))
+    if admin is None:
+        admin = Learner(
+            display_name="EduNex Administrator",
+            email=admin_email,
+            hashed_password=hash_password("adminpassword123"),
+            role=LearnerRole.admin,
+            preferences={},
+        )
+        db.add(admin)
+    else:
+        admin.role = LearnerRole.admin
+
+    learner_email = "learner@edunex.com"
+    learner = db.scalar(select(Learner).where(Learner.email == learner_email))
+    if learner is None:
+        learner = Learner(
+            display_name="Alex Chen",
+            email=learner_email,
+            hashed_password=hash_password("learnerpassword123"),
+            role=LearnerRole.learner,
+            preferences={
+                "vark_preferences": ["visual", "kinesthetic"],
+                "learning_goal": "Master Linked Lists and Algorithmic Problem Solving",
+                "preferred_detail": "comprehensive",
+            },
+        )
+        db.add(learner)
+
+
 def seed_initial_data(db: Session) -> None:
     subject = _get_or_create_subject(db)
     topic = _get_or_create_topic(db, subject)
     _seed_questions(db, topic)
+    _seed_default_users(db)
     db.commit()
+

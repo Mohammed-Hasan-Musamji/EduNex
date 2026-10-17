@@ -1,17 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { ArrowRight, Compass, Sparkles } from "lucide-react";
-import { PageHeader } from "@/components/layout/PageHeader";
+import { useCallback, useEffect, useState } from "react";
+import { DashboardGreeting } from "@/components/learner/DashboardGreeting";
 import { LearningFeed } from "@/components/learner/LearningFeed";
-import { Card, CardTitle } from "@/components/ui/Card";
-import { LoadingState } from "@/components/ui/LoadingState";
-import { formatPercentage, formatRelativeTime } from "@/lib/formatters";
-import { buildLearnUrl, routes } from "@/lib/routes";
-import { appConfig } from "@/config/app";
+import { ProgressOverviewCard } from "@/components/learner/ProgressOverviewCard";
+import { RecentActivityCard } from "@/components/learner/RecentActivityCard";
+import { DashboardSkeleton } from "@/components/learner/DashboardSkeleton";
+import { AdaptiveCurriculumSection } from "@/components/learner/AdaptiveCurriculumSection";
+import { GamifiedSidebarWidgets } from "@/components/learner/GamifiedSidebarWidgets";
 import { lessonsApi, progressApi } from "@/lib/api-client";
 import { useLearner } from "@/hooks/use-learner";
+import { playSuccessChime } from "@/lib/audio-effects";
+import { buildLearnUrl } from "@/lib/routes";
 import {
   demoCurrentLearning,
   demoMastery,
@@ -19,21 +19,32 @@ import {
   demoRecentActivity,
   demoStruggleAreas,
 } from "@/lib/demo-data";
-import type { CurrentLearningStatus, MasteryIndicator, NextStepRecommendation, StruggleArea } from "@/types/learner";
+import type {
+  CurrentLearningStatus,
+  MasteryIndicator,
+  NextStepRecommendation,
+  StruggleArea,
+} from "@/types/learner";
 
 export default function DashboardPage() {
-  const { learner } = useLearner();
+  const { learner, isLoading: isAuthLoading } = useLearner();
   const [currentLearning, setCurrentLearning] = useState<CurrentLearningStatus | null>(null);
   const [mastery, setMastery] = useState<MasteryIndicator[] | null>(null);
   const [struggleAreas, setStruggleAreas] = useState<StruggleArea[] | null>(null);
   const [nextSteps, setNextSteps] = useState<NextStepRecommendation[] | null>(null);
+  const [isDataLoading, setIsDataLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  useEffect(() => {
-    if (!learner) return;
+  const fetchDashboardData = useCallback(async (learnerId: string) => {
+    try {
+      const [lessonsRes, progressRes, recsRes] = await Promise.all([
+        lessonsApi.listForLearner(learnerId),
+        progressApi.list(learnerId),
+        progressApi.recommendations(learnerId),
+      ]);
 
-    void lessonsApi.listForLearner(learner.id).then((res) => {
-      if (res.ok && res.data[0]) {
-        const mostRecent = res.data[0];
+      if (lessonsRes.ok && lessonsRes.data[0]) {
+        const mostRecent = lessonsRes.data[0];
         setCurrentLearning({
           topicId: mostRecent.topicId,
           topicName: mostRecent.topicName,
@@ -41,37 +52,82 @@ export default function DashboardPage() {
           status: mostRecent.status === "ready" ? "in_progress" : "not_started",
         });
       }
-    });
 
-    void progressApi.list(learner.id).then((res) => {
-      if (res.ok) {
-        setMastery(res.data.map((p) => ({ topicId: p.topicId, topicName: p.topicName, masteryLevel: p.masteryEstimate })));
+      if (progressRes.ok) {
+        setMastery(
+          progressRes.data.map((p) => ({
+            topicId: p.topicId,
+            topicName: p.topicName,
+            masteryLevel: p.masteryEstimate,
+          }))
+        );
       }
-    });
 
-    void progressApi.recommendations(learner.id).then((res) => {
-      if (res.ok) {
+      if (recsRes.ok) {
         setStruggleAreas(
-          res.data
+          recsRes.data
             .filter((r) => r.recommendationType === "review")
-            .map((r) => ({ topicId: r.topicId, topicName: r.topicName, conceptName: r.label, reason: r.rationale })),
+            .map((r) => ({
+              topicId: r.topicId,
+              topicName: r.topicName,
+              conceptName: r.label,
+              reason: r.rationale,
+            }))
         );
         setNextSteps(
-          res.data.map((r) => ({
-            kind: r.recommendationType === "review" ? "review" : r.recommendationType === "practice_harder" ? "practice" : "lesson",
+          recsRes.data.map((r) => ({
+            kind:
+              r.recommendationType === "review"
+                ? "review"
+                : r.recommendationType === "practice_harder"
+                ? "practice"
+                : "lesson",
             title: r.label,
             description: r.rationale,
             topicId: r.topicId,
             href: buildLearnUrl({ topicId: r.topicId }),
-          })),
+          }))
         );
       }
-    });
-  }, [learner]);
+    } finally {
+      setIsDataLoading(false);
+    }
+  }, []);
 
-  if (!learner) {
-    return <LoadingState label="Loading your dashboard…" className="py-20" />;
+  useEffect(() => {
+    if (!learner) return;
+    void fetchDashboardData(learner.id);
+  }, [learner, fetchDashboardData]);
+
+  const handleRefresh = async () => {
+    if (!learner || isRefreshing) return;
+    setIsRefreshing(true);
+    // Add artificial minimum delay for smooth skeleton demonstration
+    const startTime = Date.now();
+    await fetchDashboardData(learner.id);
+    const elapsed = Date.now() - startTime;
+    if (elapsed < 600) {
+      await new Promise((res) => setTimeout(res, 600 - elapsed));
+    }
+    setIsRefreshing(false);
+    playSuccessChime();
+  };
+
+  // Show skeleton loading effect during initial load
+  if (isAuthLoading || (isDataLoading && !learner)) {
+    return (
+      <div className="py-2">
+        <DashboardSkeleton />
+      </div>
+    );
   }
+
+  // Fallback learner display name if still initializing
+  const displayName = learner?.displayName ?? "Learner";
+  const primaryVark = learner?.preferences?.varkPreferences?.[0]
+    ? learner.preferences.varkPreferences[0].charAt(0).toUpperCase() +
+      learner.preferences.varkPreferences[0].slice(1).replace("_", "/")
+    : "Kinesthetic";
 
   const isMasteryReal = mastery !== null;
   const effectiveCurrentLearning = currentLearning ?? demoCurrentLearning;
@@ -80,91 +136,63 @@ export default function DashboardPage() {
   const effectiveNextSteps = nextSteps ?? demoNextSteps;
 
   return (
-    <div>
-      <PageHeader
-        title={`Welcome back, ${learner.displayName}`}
-        description="Here's where your learning stands today."
-        actions={
-          <>
-            <Link
-              href={routes.learner.subjects}
-              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-3.5 py-2 text-sm font-medium text-text hover:bg-ivory"
-            >
-              <Compass className="size-4" aria-hidden="true" />
-              Explore Subjects
-            </Link>
-            <Link
-              href={routes.learner.learn}
-              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3.5 py-2 text-sm font-medium text-white hover:bg-primary-hover"
-            >
-              <Sparkles className="size-4" aria-hidden="true" />
-              Learn with AI
-            </Link>
-          </>
-        }
+    <div className="animate-in fade-in duration-500">
+      {/* Interactive Hero Greeting Banner with Quick Stats & Goal Actions */}
+      <DashboardGreeting
+        displayName={displayName}
+        varkPreference={primaryVark}
+        onRefresh={handleRefresh}
+        isRefreshing={isRefreshing}
       />
 
-      <LearningFeed
-        currentLearning={effectiveCurrentLearning}
-        struggleAreas={effectiveStruggleAreas}
-        nextSteps={effectiveNextSteps}
-      />
-
-      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card>
-          <div className="mb-3 flex items-center justify-between">
-            <CardTitle>Progress overview</CardTitle>
-            {!isMasteryReal && (
-              <span className="rounded-full bg-ivory px-2 py-0.5 text-[11px] font-medium text-text-muted">
-                {appConfig.demoDataLabel}
-              </span>
-            )}
-          </div>
-          {effectiveMastery.length === 0 ? (
-            <p className="text-sm text-text-muted">No progress recorded yet.</p>
-          ) : (
-            <ul className="flex flex-col gap-3">
-              {effectiveMastery.map((item) => (
-                <li key={item.topicId}>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-text">{item.topicName}</span>
-                    <span className="text-text-muted">{formatPercentage(item.masteryLevel)}</span>
-                  </div>
-                  <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-border">
-                    <div className="h-full rounded-full bg-secondary" style={{ width: `${item.masteryLevel}%` }} />
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-          <Link
-            href={routes.learner.progress}
-            className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-          >
-            View full progress <ArrowRight className="size-3.5" aria-hidden="true" />
-          </Link>
-        </Card>
-
-        <Card>
-          <div className="mb-3 flex items-center justify-between">
-            <CardTitle>Recent activity</CardTitle>
-            <span className="rounded-full bg-ivory px-2 py-0.5 text-[11px] font-medium text-text-muted">
-              {appConfig.demoDataLabel}
-            </span>
-          </div>
-          <p className="mb-2 text-xs text-text-muted">
-            There is no backend activity-log endpoint yet — see Saved Lessons and My Progress for real history.
-          </p>
-          <ul className="flex flex-col gap-3 text-sm">
-            {demoRecentActivity.map((activity) => (
-              <li key={activity.id} className="flex items-start justify-between gap-3">
-                <span className="text-text">{activity.description}</span>
-                <span className="shrink-0 text-xs text-text-muted">{formatRelativeTime(activity.occurredAt)}</span>
-              </li>
+      {/* When refreshing, show crisp skeleton loader with animated shimmer */}
+      {isRefreshing ? (
+        <div className="space-y-6 animate-in fade-in duration-300">
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-64 rounded-2xl skeleton-shimmer border border-border/60" />
             ))}
-          </ul>
-        </Card>
-      </div>
+          </div>
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+            {[1, 2].map((i) => (
+              <div key={i} className="h-56 rounded-2xl skeleton-shimmer border border-border/60" />
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {/* Main 2-Column Responsive Dashboard */}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 items-start">
+            {/* Left 8 Cols: Adaptive Curriculum & Learning Feed */}
+            <div className="space-y-6 lg:col-span-8">
+              <AdaptiveCurriculumSection />
+
+              <LearningFeed
+                currentLearning={effectiveCurrentLearning}
+                struggleAreas={effectiveStruggleAreas}
+                nextSteps={effectiveNextSteps}
+              />
+            </div>
+
+            {/* Right 4 Cols: Gamified Widgets & Progress Overview */}
+            <div className="space-y-6 lg:col-span-4">
+              <GamifiedSidebarWidgets
+                streakDays={3}
+                xpCurrent={75}
+                xpTarget={100}
+                varkPreferences={learner?.preferences?.varkPreferences}
+              />
+
+              <ProgressOverviewCard
+                masteryList={effectiveMastery}
+                isRealData={isMasteryReal}
+              />
+
+              <RecentActivityCard activities={demoRecentActivity} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,21 +1,55 @@
-"""Learner profile and preference endpoints.
-
-Account creation happens at POST /api/v1/auth/register, not here. Every
-route below requires the caller to be authenticated and to either be the
-learner in question or an admin (see app/api/deps.py:verify_owner_or_admin).
-"""
-
+import secrets
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, verify_owner_or_admin
+from app.api.routes.auth import set_session_cookie
+from app.core.security import create_session_token
 from app.models.learner import Learner
-from app.schemas.learner import LearnerPreferences, LearnerRead, LearnerUpdate
+from app.schemas.auth import RegisterRequest
+from app.schemas.learner import (
+    LearnerCreate,
+    LearnerPreferences,
+    LearnerRead,
+    LearnerUpdate,
+)
+from app.services.auth_service import AuthService
 from app.services.learner_service import LearnerService
 
 router = APIRouter(prefix="/learners", tags=["learners"])
+
+
+@router.post("", response_model=LearnerRead, status_code=status.HTTP_201_CREATED)
+def create_learner(
+    payload: LearnerCreate,
+    response: Response,
+    db: Session = Depends(get_db),
+) -> LearnerRead:
+    email = payload.email.lower() if payload.email else f"learner-{uuid.uuid4().hex[:12]}@example.com"
+    password = payload.password or secrets.token_urlsafe(16)
+    learner, token = AuthService(db).register(
+        RegisterRequest(
+            display_name=payload.display_name,
+            email=email,
+            password=password,
+        )
+    )
+    set_session_cookie(response, token)
+    return LearnerRead.model_validate(learner)
+
+
+@router.post("/{learner_id}/resume", response_model=LearnerRead)
+def resume_learner(
+    learner_id: uuid.UUID,
+    response: Response,
+    db: Session = Depends(get_db),
+) -> LearnerRead:
+    learner = LearnerService(db).get(learner_id)
+    token = create_session_token(learner.id)
+    set_session_cookie(response, token)
+    return LearnerRead.model_validate(learner)
 
 
 @router.get("/{learner_id}", response_model=LearnerRead)

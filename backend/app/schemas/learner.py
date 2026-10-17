@@ -32,6 +32,12 @@ class LearnerPreferences(BaseModel):
     learning_goal: str | None = Field(default=None, max_length=500)
 
 
+class LearnerCreate(BaseModel):
+    display_name: str = Field(min_length=1, max_length=120)
+    email: str | None = None
+    password: str | None = None
+
+
 class LearnerUpdate(BaseModel):
     display_name: str | None = Field(default=None, min_length=1, max_length=120)
     preferences: LearnerPreferences | None = None

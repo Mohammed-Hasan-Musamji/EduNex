@@ -16,17 +16,19 @@ export function ErrorState({ title = "Something went wrong", description, onRetr
     <div
       role="alert"
       className={cn(
-        "flex flex-col items-center gap-3 rounded-lg border border-border bg-error-bg px-6 py-8 text-center",
+        "flex flex-col items-center gap-3 rounded-2xl border border-error/35 bg-card p-6 sm:p-8 text-center shadow-lg transition-all animate-fade-scale",
         className,
       )}
     >
-      <AlertTriangle className="size-7 text-error" aria-hidden="true" />
-      <div>
-        <p className="font-medium text-text">{title}</p>
-        <p className="mt-1 text-sm text-text-muted">{description}</p>
+      <div className="flex size-12 items-center justify-center rounded-2xl bg-error/15 text-error ring-1 ring-error/25 shadow-xs">
+        <AlertTriangle className="size-6" aria-hidden="true" />
+      </div>
+      <div className="max-w-md">
+        <p className="font-serif text-base sm:text-lg font-bold text-text">{title}</p>
+        <p className="mt-1 text-xs sm:text-sm text-text-muted leading-relaxed">{description}</p>
       </div>
       {onRetry && (
-        <Button variant="secondary" size="sm" onClick={onRetry}>
+        <Button variant="secondary" size="sm" onClick={onRetry} className="mt-1">
           Try again
         </Button>
       )}

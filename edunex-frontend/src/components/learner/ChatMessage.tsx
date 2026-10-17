@@ -14,8 +14,8 @@ export function ChatMessage({ message }: { message: ChatMessageType }) {
       )}
       <div
         className={cn(
-          "max-w-[85%] rounded-lg px-3.5 py-2.5 text-sm",
-          isUser ? "bg-primary text-white" : "border border-border bg-white text-text",
+          "max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm shadow-xs",
+          isUser ? "bg-primary text-white" : "border border-border bg-card text-text",
           message.status === "failed" && "border-error",
         )}
       >

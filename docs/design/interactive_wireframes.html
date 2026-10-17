@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EduNex — Interactive High-Fidelity Wireframe Specification Prototype</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-canvas: #FAF7F2;
+      --bg-card: #FFFFFF;
+      --bg-surface-warm: #F4EFEA;
+      --accent-primary: #B96F52;
+      --accent-secondary: #D9A441;
+      --text-primary: #292824;
+      --text-secondary: #77736C;
+      --border-subtle: #E8E0D6;
+      --border-focus: #B96F52;
+      --status-success: #2E6B4F;
+      --status-error: #A63A2F;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --shadow-sm: 0 1px 3px rgba(41, 40, 36, 0.05);
+      --shadow-md: 0 8px 24px -4px rgba(41, 40, 36, 0.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-canvas);
+      color: var(--text-primary);
+      line-height: 1.5;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Top Prototype Control Banner */
+    .prototype-bar {
+      background: #201F1B;
+      color: #FAF7F2;
+      padding: 0.55rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.82rem;
+      border-bottom: 1px solid #383630;
+      z-index: 1000;
+      flex-shrink: 0;
+    }
+    .prototype-bar .badge {
+      background: var(--accent-primary);
+      color: #FFF;
+      padding: 0.2rem 0.55rem;
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 0.72rem;
+      letter-spacing: 0.03em;
+    }
+    .viewport-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .viewport-controls button {
+      background: #33312B;
+      color: #CCC;
+      border: 1px solid #4D4A41;
+      padding: 0.25rem 0.6rem;
+      border-radius: 4px;
+      font-size: 0.76rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .viewport-controls button:hover {
+      background: #423F37;
+      color: #FFF;
+    }
+    .viewport-controls button.active {
+      background: var(--accent-primary);
+      color: #FFF;
+      border-color: var(--accent-primary);
+    }
+
+    /* Outer Wrapper for responsive simulation */
+    .viewport-container {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+      background: #EAE5DD;
+      overflow: hidden;
+      padding: 0;
+      transition: all 0.3s ease;
+    }
+    .viewport-container.tablet { max-width: 834px; margin: 0.75rem auto; border: 1px solid #CCC; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); }
+    .viewport-container.mobile { max-width: 390px; margin: 0.75rem auto; border: 1px solid #CCC; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); }
+
+    /* App Frame */
+    .app-frame {
+      flex: 1;
+      display: flex;
+      background: var(--bg-canvas);
+      overflow: hidden;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Sidebar Navigation */
+    .sidebar {
+      width: 250px;
+      background: #FFFFFF;
+      border-right: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      overflow-y: auto;
+    }
+    .sidebar-header {
+      padding: 1.1rem 1.25rem;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+    }
+    .logo-badge {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: var(--accent-primary);
+      color: #FFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+    .sidebar-section-title {
+      padding: 0.9rem 1.25rem 0.35rem;
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .nav-item {
+      padding: 0.6rem 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      font-size: 0.88rem;
+      color: var(--text-primary);
+      text-decoration: none;
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: all 0.15s ease;
+    }
+    .nav-item:hover {
+      background: var(--bg-surface-warm);
+    }
+    .nav-item.active {
+      background: rgba(185, 111, 82, 0.09);
+      color: var(--accent-primary);
+      font-weight: 600;
+      border-left-color: var(--accent-primary);
+    }
+
+    /* Main Content Region */
+    .main-viewport {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      min-width: 0;
+    }
+    .top-header {
+      padding: 0.85rem 1.75rem;
+      background: #FFFFFF;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .content-area {
+      padding: 1.75rem;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    /* Common Card & Button Styles */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 1.4rem;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 1.25rem;
+    }
+    .btn {
+      font-family: inherit;
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.84rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      border: none;
+      transition: all 0.15s;
+    }
+    .btn-primary {
+      background: var(--accent-primary);
+      color: #FFFFFF;
+    }
+    .btn-primary:hover { opacity: 0.92; }
+    .btn-secondary {
+      background: var(--bg-surface-warm);
+      color: var(--text-primary);
+      border: 1px solid var(--border-subtle);
+    }
+    .btn-secondary:hover { background: #ECE6DF; }
+    .pill {
+      display: inline-block;
+      padding: 0.2rem 0.55rem;
+      border-radius: 9999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+    .pill-warm { background: rgba(185, 111, 82, 0.12); color: var(--accent-primary); }
+    .pill-gold { background: rgba(217, 164, 65, 0.18); color: #8A6417; }
+    .pill-green { background: rgba(46, 107, 79, 0.12); color: var(--status-success); }
+    .pill-neutral { background: #EEE8DF; color: var(--text-secondary); }
+
+    /* Screen Visibility */
+    .screen-panel { display: none; }
+    .screen-panel.active { display: block; animation: fadeIn 0.2s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Learn with AI Split Layout */
+    .learn-split-container {
+      display: flex;
+      gap: 1.25rem;
+      align-items: stretch;
+      min-height: 600px;
+    }
+    .whiteboard-pane {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .ai-chat-pane {
+      width: 340px;
+      background: #FFFFFF;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      box-shadow: var(--shadow-sm);
+    }
+    .chat-header {
+      padding: 0.9rem 1.1rem;
+      border-bottom: 1px solid var(--border-subtle);
+      background: var(--bg-surface-warm);
+      border-radius: var(--radius-md) var(--radius-md) 0 0;
+    }
+    .chat-messages {
+      flex: 1;
+      padding: 1rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      font-size: 0.82rem;
+    }
+    .chat-msg {
+      padding: 0.65rem 0.85rem;
+      border-radius: 8px;
+      line-height: 1.4;
+      max-width: 90%;
+    }
+    .chat-msg.tutor {
+      background: var(--bg-surface-warm);
+      color: var(--text-primary);
+      align-self: flex-start;
+      border: 1px solid var(--border-subtle);
+    }
+    .chat-msg.user {
+      background: var(--accent-primary);
+      color: #FFFFFF;
+      align-self: flex-end;
+    }
+    .chat-composer {
+      padding: 0.75rem;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      gap: 0.4rem;
+    }
+    .chat-composer input {
+      flex: 1;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 0.82rem;
+    }
+    .chat-composer input:focus {
+      outline: 2px solid var(--border-focus);
+    }
+
+    /* Interactive Linked List Visualizer Canvas */
+    .viz-canvas {
+      background: #FAF7F2;
+      border: 2px dashed var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 1.5rem 1rem;
+      min-height: 180px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      overflow-x: auto;
+      gap: 0.85rem;
+      margin: 0.85rem 0;
+    }
+    .node-box {
+      display: flex;
+      border: 2px solid var(--accent-primary);
+      background: #FFFFFF;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(41, 40, 36, 0.06);
+      overflow: hidden;
+      animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    @keyframes popIn { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .node-val {
+      padding: 0.5rem 0.8rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      background: #FFFFFF;
+      color: var(--text-primary);
+      border-right: 1px solid var(--border-subtle);
+      font-size: 0.95rem;
+    }
+    .node-ptr {
+      padding: 0.5rem 0.65rem;
+      background: var(--bg-surface-warm);
+      display: flex;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--accent-primary);
+      font-weight: 600;
+    }
+    .arrow-line {
+      display: flex;
+      align-items: center;
+      color: var(--accent-primary);
+      font-weight: bold;
+      font-size: 1.25rem;
+    }
+
+    /* 3-column feed grid */
+    .feed-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.1rem;
+      margin-bottom: 1.25rem;
+    }
+    @media (max-width: 960px) {
+      .feed-grid { grid-template-columns: 1fr; }
+      .learn-split-container { flex-direction: column; }
+      .ai-chat-pane { width: 100%; height: 350px; }
+    }
+
+    /* Table styling */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.84rem;
+      margin-top: 0.5rem;
+    }
+    .data-table th {
+      background: var(--bg-surface-warm);
+      padding: 0.6rem 0.75rem;
+      text-align: left;
+      font-weight: 600;
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+    }
+    .data-table td {
+      padding: 0.65rem 0.75rem;
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+    }
+    .data-table tr:hover td {
+      background: #FAF7F2;
+    }
+
+    /* Auth modal overlay */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(32, 31, 27, 0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      backdrop-filter: blur(2px);
+    }
+    .modal-overlay.active {
+      display: flex;
+    }
+    .modal-card {
+      background: #FFFFFF;
+      border-radius: var(--radius-lg);
+      width: 90%;
+      max-width: 440px;
+      padding: 2rem;
+      box-shadow: var(--shadow-md);
+      position: relative;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Prototype Control Header -->
+  <div class="prototype-bar">
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <span class="badge">EduNex Wireframe Demo</span>
+      <span style="color: #CDC8BF;">High-Fidelity UI Specification (All 11 Pages + Auth Proposal)</span>
+    </div>
+    <div class="viewport-controls">
+      <span style="color: #AAA; font-size: 0.75rem; margin-right: 0.2rem;">Viewport:</span>
+      <button class="active" onclick="setViewport('desktop', this)">Desktop (1440px)</button>
+      <button onclick="setViewport('tablet', this)">Tablet (834px)</button>
+      <button onclick="setViewport('mobile', this)">Mobile (390px)</button>
+      <button style="margin-left: 0.5rem; background: #4D4A41;" onclick="openAuthModal()">🔐 Auth Proposal</button>
+    </div>
+  </div>
+
+  <div class="viewport-container" id="viewportContainer">
+    <div class="app-frame">
+
+      <!-- Reusable Sidebar Shell -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <div class="logo-badge">E</div>
+          <div>
+            <div style="font-weight: 700; font-size: 0.98rem; color: var(--text-primary);">EduNex</div>
+            <div style="font-size: 0.68rem; color: var(--text-secondary);">Adaptive Learning Platform</div>
+          </div>
+        </div>
+
+        <div class="sidebar-section-title">Learner Workspace (6)</div>
+        <div class="nav-item active" onclick="showScreen('screen-learner-dashboard', this)">
+          <span>📊</span> Dashboard
+        </div>
+        <div class="nav-item" onclick="showScreen('screen-learner-subjects', this)">
+          <span>📚</span> Explore Subjects
+        </div>
+        <div class="nav-item" onclick="showScreen('screen-learner-learn', this)">
+          <span>✨</span> Learn with AI
+        </div>
+        <div class="nav-item" onclick="showScreen('screen-learner-practice', this)">
+          <span>✏️</span> Practice & Quiz
+        </div>
+        <div class="nav-item" onclick="showScreen('screen-learner-progress', this)">
+          <span>📈</span> My Progress
+        </div>
+        <div class="nav-item" onclick="showScreen('screen-learner-saved', this)">
+          <span>🔖</span> Saved Lessons
+        </div>
+
+        <div class="sidebar-section-title">Admin Console (5)</div>
+        <div class="nav-item" onclick="showScreen('screen-admin-dashboard', this)">
+          <span>🛡️</span> Admin Overview
+        </div>
+        <div class="nav-item" onclick="showScreen('screen-admin-users', this)">
+          <span>👥</span> User Accounts
+        </div>
+        <div class="nav-item" onclick="showScreen('screen-admin-courses', this)">
+          <span>🗂️</span> Subject Catalogue
+        </div>
+        <div class="nav-item" onclick="showScreen('screen-admin-kb', this)">
+          <span>📖</span> Academic RAG KB
+        </div>
+        <div class="nav-item" onclick="showScreen('screen-admin-analytics', this)">
+          <span>⚙️</span> Analytics & Settings
+        </div>
+
+        <div style="margin-top: auto; padding: 0.9rem 1.1rem; border-top: 1px solid var(--border-subtle); display: flex; align-items: center; gap: 0.65rem;">
+          <div style="width: 32px; height: 32px; border-radius: 50%; background: #D9A441; color: #FFF; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem;">H</div>
+          <div>
+            <div style="font-size: 0.82rem; font-weight: 600;">Hasan Musamji</div>
+            <div style="font-size: 0.68rem; color: var(--text-secondary);">Learner (Data Structures)</div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Workspace -->
+      <main class="main-viewport">
+        <!-- Global Header -->
+        <header class="top-header">
+          <div id="breadcrumbText" style="font-size: 0.82rem; color: var(--text-secondary);">
+            Learner Workspace &gt; <strong style="color: var(--text-primary);">Dashboard</strong>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <span class="pill pill-green">● ChromaDB Grounded</span>
+            <span style="font-size: 0.82rem; color: var(--text-secondary);">Topic: <strong>Linked Lists</strong></span>
+          </div>
+        </header>
+
+        <div class="content-area">
+
+          <!-- ========================================== -->
+          <!-- SCREEN 1: LEARNER DASHBOARD                -->
+          <!-- ========================================== -->
+          <div id="screen-learner-dashboard" class="screen-panel active">
+            <div class="card" style="background: linear-gradient(180deg, #FFFFFF 0%, #FAF7F2 100%); border-left: 4px solid var(--accent-primary);">
+              <span class="pill pill-warm" style="margin-bottom: 0.4rem;">Active Study Track</span>
+              <h1 style="font-size: 1.5rem; margin-bottom: 0.35rem;">Welcome back, Hasan.</h1>
+              <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.1rem;">
+                You're mastering <strong>Linked List Pointers</strong> today. Consistent, evidence-based deliberate practice turns learning gaps into permanent mental models.
+              </p>
+              <button class="btn btn-primary" onclick="showScreen('screen-learner-learn', document.querySelectorAll('.nav-item')[2])">
+                Continue Active Lesson (Insertion & Pointers) &rarr;
+              </button>
+            </div>
+
+            <!-- 3 Learning Feeds -->
+            <div class="feed-grid">
+              <div class="card">
+                <span style="font-size: 0.7rem; color: var(--text-secondary); font-weight: 700; text-transform: uppercase;">FEED 1: What am I learning?</span>
+                <h3 style="font-size: 1rem; margin: 0.4rem 0;">Singly Linked Lists</h3>
+                <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 0.9rem;">
+                  Current subtopic: Reference swapping during node insertion. (65% completed).
+                </p>
+                <button class="btn btn-secondary" onclick="showScreen('screen-learner-learn', document.querySelectorAll('.nav-item')[2])">
+                  Resume Lesson
+                </button>
+              </div>
+
+              <div class="card">
+                <span style="font-size: 0.7rem; color: #A63A2F; font-weight: 700; text-transform: uppercase;">FEED 2: Where am I struggling?</span>
+                <h3 style="font-size: 1rem; margin: 0.4rem 0;">Pointer Detachment</h3>
+                <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 0.9rem;">
+                  2 incorrect answers in Node Reversal. Cause: losing reference to next node before updating head.
+                </p>
+                <button class="btn btn-secondary" onclick="showScreen('screen-learner-learn', document.querySelectorAll('.nav-item')[2])">
+                  Review Diagnostic
+                </button>
+              </div>
+
+              <div class="card">
+                <span style="font-size: 0.7rem; color: #8A6417; font-weight: 700; text-transform: uppercase;">FEED 3: What can I do next?</span>
+                <h3 style="font-size: 1rem; margin: 0.4rem 0;">Targeted Simulation</h3>
+                <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 0.9rem;">
+                  Recommended: 10-minute visualizer practice: "Reversing a Singly Linked List without orphan nodes".
+                </p>
+                <button class="btn btn-primary" onclick="showScreen('screen-learner-practice', document.querySelectorAll('.nav-item')[3])">
+                  Start Practice
+                </button>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3 style="font-size: 0.95rem; margin-bottom: 0.75rem;">Recent Verified Activity</h3>
+              <div style="font-size: 0.82rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.45rem;">
+                <div>✓ Completed Checkpoint: Memory layout comparison between Arrays and Linked Lists (Yesterday)</div>
+                <div>✓ Ingested Textbook Reference: Pat Morin's <em>Open Data Structures</em> Chapter 3 (2 days ago)</div>
+                <div>✓ Diagnostic Quiz: "Node Deletion & Memory Leaks" scored 4/5 (3 days ago)</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ========================================== -->
+          <!-- SCREEN 2: EXPLORE SUBJECTS                 -->
+          <!-- ========================================== -->
+          <div id="screen-learner-subjects" class="screen-panel">
+            <h1 style="font-size: 1.4rem; margin-bottom: 0.25rem;">Explore Subjects & Curriculum</h1>
+            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1.25rem;">
+              Discover academic domains, choose a topic, and configure optional multimodal learning preferences.
+            </p>
+
+            <div class="card">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="font-size: 1.05rem;">1. Select Topic in Data Structures</h3>
+                <input type="text" placeholder="Search topics (e.g. 'Pointers')..." style="padding: 0.45rem 0.8rem; font-size: 0.82rem; border: 1px solid var(--border-subtle); border-radius: 6px; width: 220px;">
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
+                <div style="border: 2px solid var(--accent-primary); background: #FFF; padding: 1.1rem; border-radius: 8px;">
+                  <span class="pill pill-warm">Active Focus Topic</span>
+                  <h4 style="margin: 0.4rem 0; font-size: 1rem;">Linked Lists</h4>
+                  <p style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.4;">
+                    Sequential data elements connected by memory pointer references. Covers Singly, Doubly, and Circular variants.
+                  </p>
+                  <div style="margin-top: 0.75rem; font-size: 0.75rem; color: var(--accent-primary); font-weight: 600;">
+                    ✓ Selected for study
+                  </div>
+                </div>
+                <div style="border: 1px solid var(--border-subtle); background: #FFF; padding: 1.1rem; border-radius: 8px; opacity: 0.65;">
+                  <span class="pill pill-neutral">Coming Soon</span>
+                  <h4 style="margin: 0.4rem 0; font-size: 1rem;">Binary Search Trees</h4>
+                  <p style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.4;">
+                    Hierarchical node structures, dynamic balancing, and O(log n) search algorithms.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3 style="font-size: 1.05rem; margin-bottom: 0.4rem;">2. Multimodal Learning Preferences (VARK Model)</h3>
+              <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                Customize how explanations, diagrams, and simulations are synthesized. You can adjust this anytime.
+              </p>
+              <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <label style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.86rem; cursor: pointer;">
+                  <input type="checkbox" id="prefVisual" checked> <strong>Visual</strong> (Animated diagrams, pointer arrows)
+                </label>
+                <label style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.86rem; cursor: pointer;">
+                  <input type="checkbox" id="prefAuditory"> <strong>Auditory</strong> (Spoken narration debriefs)
+                </label>
+                <label style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.86rem; cursor: pointer;">
+                  <input type="checkbox" id="prefRead"> <strong>Read/Write</strong> (Detailed academic proofs)
+                </label>
+                <label style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.86rem; cursor: pointer;">
+                  <input type="checkbox" id="prefKinesthetic" checked> <strong>Kinesthetic</strong> (Interactive node manipulation)
+                </label>
+              </div>
+
+              <div style="margin-top: 1.25rem; display: flex; justify-content: flex-end; gap: 0.5rem;">
+                <button class="btn btn-secondary" onclick="alert('Reset to standard academic defaults.')">Reset</button>
+                <button class="btn btn-primary" onclick="showScreen('screen-learner-learn', document.querySelectorAll('.nav-item')[2])">
+                  Save Preferences & Launch Whiteboard &rarr;
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ========================================== -->
+          <!-- SCREEN 3: LEARN WITH AI (STATE A & B)      -->
+          <!-- ========================================== -->
+          <div id="screen-learner-learn" class="screen-panel">
+            <!-- Workspace Mode Switcher -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
+              <div>
+                <span class="pill pill-warm" id="stateBadge">State B: Active Whiteboard Session</span>
+                <h1 style="font-size: 1.35rem; margin-top: 0.2rem;" id="lessonTitleHeading">Lesson: Singly Linked List Node Insertion</h1>
+              </div>
+              <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <div style="background: var(--bg-surface-warm); padding: 0.25rem; border-radius: 6px; border: 1px solid var(--border-subtle); display: flex;">
+                  <button id="btnStateA" class="btn" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; background: transparent;" onclick="toggleLearnState('A')">State A: Discovery</button>
+                  <button id="btnStateB" class="btn btn-primary" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="toggleLearnState('B')">State B: Whiteboard</button>
+                </div>
+                <button class="btn btn-secondary" onclick="alert('Lesson bookmarked in Saved Lessons!')">🔖 Save</button>
+              </div>
+            </div>
+
+            <!-- Split Container: Whiteboard + AI Chat -->
+            <div class="learn-split-container">
+              
+              <!-- Left / Central Pane -->
+              <div class="whiteboard-pane">
+                
+                <!-- STATE A: DISCOVERY & PROMPTING -->
+                <div id="learnStateA" style="display: none;">
+                  <div class="card" style="background: linear-gradient(180deg, #FFFFFF 0%, #FAF7F2 100%);">
+                    <span class="pill pill-gold" style="margin-bottom: 0.4rem;">Grounded Academic Copilot</span>
+                    <h2 style="font-size: 1.25rem; margin-bottom: 0.4rem;">Explore Linked Lists with Evidence-Based AI</h2>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 1.25rem;">
+                      EduNex transforms your learning gaps into interactive, verified lessons. Every explanation is indexed directly from Pat Morin's <em>Open Data Structures</em>.
+                    </p>
+                    <h4 style="font-size: 0.9rem; margin-bottom: 0.6rem;">Suggested prompts to launch this session:</h4>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                      <button class="btn btn-secondary" style="justify-content: flex-start; text-align: left;" onclick="selectSuggestedPrompt('Explain linked lists using a simple train-car analogy.')">
+                        💡 "Explain linked lists using a simple train-car analogy."
+                      </button>
+                      <button class="btn btn-secondary" style="justify-content: flex-start; text-align: left;" onclick="selectSuggestedPrompt('Show me step-by-step how to insert a node at the head.')">
+                        💡 "Show me step-by-step how to insert a node at the head."
+                      </button>
+                      <button class="btn btn-secondary" style="justify-content: flex-start; text-align: left;" onclick="selectSuggestedPrompt('What happens to pointers when deleting the middle node?')">
+                        💡 "What happens to pointers when deleting the middle node?"
+                      </button>
+                      <button class="btn btn-secondary" style="justify-content: flex-start; text-align: left;" onclick="selectSuggestedPrompt('Why does inserting into a linked list take O(1) time?')">
+                        💡 "Why does inserting into a linked list take O(1) time?"
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="card">
+                    <h4 style="font-size: 0.95rem; margin-bottom: 0.5rem;">Resumable Recent Session</h4>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <div>
+                        <div style="font-weight: 600; font-size: 0.88rem;">Linked List Memory Pointers & Reference Leaks</div>
+                        <div style="font-size: 0.78rem; color: var(--text-secondary);">Paused at Step 3 of 4 • Saved yesterday</div>
+                      </div>
+                      <button class="btn btn-primary" onclick="toggleLearnState('B')">Resume Session &rarr;</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- STATE B: ACTIVE WHITEBOARD + VISUALIZER -->
+                <div id="learnStateB">
+                  <!-- Visualizer Card -->
+                  <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+                      <div>
+                        <h3 style="font-size: 1.05rem;">Interactive Linked List Visualizer</h3>
+                        <p style="font-size: 0.8rem; color: var(--text-secondary);">Directly manipulate memory nodes and observe pointer reassignment.</p>
+                      </div>
+                      <div style="display: flex; gap: 0.4rem; align-items: center;">
+                        <input type="number" id="nodeValInput" value="42" style="width: 55px; padding: 0.35rem 0.5rem; border: 1px solid var(--border-subtle); border-radius: 4px; font-family: var(--font-mono); font-size: 0.85rem;">
+                        <button class="btn btn-primary" onclick="addNode()">+ Insert</button>
+                        <button class="btn btn-secondary" onclick="deleteNode()">- Delete Tail</button>
+                        <button class="btn btn-secondary" onclick="resetList()">Reset</button>
+                      </div>
+                    </div>
+
+                    <!-- Visualizer Canvas -->
+                    <div class="viz-canvas" id="vizCanvas">
+                      <div style="font-family: var(--font-mono); font-size: 0.8rem; font-weight: 700; color: var(--accent-primary);">HEAD &rarr;</div>
+                      <div class="node-box" id="node-0"><div class="node-val">10</div><div class="node-ptr">next: •</div></div>
+                      <div class="arrow-line">&rarr;</div>
+                      <div class="node-box" id="node-1"><div class="node-val">25</div><div class="node-ptr">next: •</div></div>
+                      <div class="arrow-line">&rarr;</div>
+                      <div class="node-box" id="node-2"><div class="node-val">70</div><div class="node-ptr">next: NULL</div></div>
+                    </div>
+
+                    <div id="vizLog" style="font-size: 0.78rem; font-family: var(--font-mono); color: var(--text-secondary); background: #FAF7F2; padding: 0.55rem 0.75rem; border-radius: 6px; border: 1px solid var(--border-subtle);">
+                      State: Ready. List contains 3 nodes. Head address points to Node(10).
+                    </div>
+                  </div>
+
+                  <!-- Grounded Citations & Checkpoint -->
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="card">
+                      <h4 style="font-size: 0.9rem; margin-bottom: 0.4rem; color: var(--accent-primary);">Textbook Evidence Grounding</h4>
+                      <p style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.45;">
+                        "In a singly linked list, each node stores a data element and a pointer reference to the next node in sequence. Insertion at the head is achieved in O(1) time by pointing the new node to the current head and updating the head pointer."
+                      </p>
+                      <div style="margin-top: 0.65rem; font-size: 0.75rem; color: var(--text-secondary);">
+                        Source: <strong>Open Data Structures</strong> by Pat Morin, Chapter 3 (p. 62)
+                      </div>
+                    </div>
+
+                    <div class="card">
+                      <h4 style="font-size: 0.9rem; margin-bottom: 0.4rem; color: var(--accent-secondary);">Embedded Comprehension Checkpoint</h4>
+                      <p style="font-size: 0.82rem; margin-bottom: 0.6rem;">
+                        Q: Why must <code>new_node.next</code> be assigned before reassigning <code>prev.next</code>?
+                      </p>
+                      <label style="display: block; font-size: 0.82rem; margin-bottom: 0.35rem; cursor: pointer;">
+                        <input type="radio" name="chk" id="optA" checked> To avoid losing the pointer to the rest of the list.
+                      </label>
+                      <label style="display: block; font-size: 0.82rem; margin-bottom: 0.6rem; cursor: pointer;">
+                        <input type="radio" name="chk"> To optimize CPU register cache alignment.
+                      </label>
+                      <button class="btn btn-primary" onclick="alert('✓ Correct! Setting new_node.next first guarantees that existing downstream nodes do not become unreachable orphans (p. 64).')">
+                        Submit Checkpoint
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- Right Pane: AI Chat Assistant -->
+              <div class="ai-chat-pane">
+                <div class="chat-header">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-weight: 700; font-size: 0.85rem;">EduNex AI Copilot</span>
+                    <span class="pill pill-green">Active</span>
+                  </div>
+                  <div style="font-size: 0.72rem; color: var(--text-secondary); margin-top: 0.2rem;">
+                    Context: Data Structures &rarr; Linked Lists
+                  </div>
+                </div>
+
+                <div class="chat-messages" id="chatMessages">
+                  <div class="chat-msg tutor">
+                    Hello Hasan! I'm grounded in Pat Morin's <em>Open Data Structures</em>. What concept shall we explore or simulate?
+                  </div>
+                  <div class="chat-msg user">
+                    Show me what happens if new_node.next is omitted during insertion.
+                  </div>
+                  <div class="chat-msg tutor">
+                    If you omit <code>new_node.next</code>, the pointer defaults to null. The rest of the chain becomes detached as orphan memory nodes! Try clicking "+ Insert" in the simulator.
+                  </div>
+                </div>
+
+                <div class="chat-composer">
+                  <input type="text" id="chatInput" placeholder="Ask a clarifying question..." onkeydown="if(event.key==='Enter') sendChatMessage()">
+                  <button class="btn btn-primary" style="padding: 0.45rem 0.75rem;" onclick="sendChatMessage()">&rarr;</button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- ========================================== -->
+          <!-- SCREEN 4: PRACTICE & ASSESSMENTS           -->
+          <!-- ========================================== -->
+          <div id="screen-learner-practice" class="screen-panel">
+            <h1 style="font-size: 1.4rem; margin-bottom: 0.25rem;">Practice & Assessments</h1>
+            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1.25rem;">
+              Diagnostic quizzes evaluating conceptual comprehension and algorithmic edge cases.
+            </p>
+
+            <div class="card">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                <span class="pill pill-gold">Question 2 of 5</span>
+                <span style="font-size: 0.8rem; color: var(--text-secondary);">Topic: Linked Lists</span>
+              </div>
+              <h3 style="font-size: 1.05rem; margin-bottom: 0.85rem;">
+                What is the time complexity of deleting a node at the tail of a Singly Linked List with a tail pointer?
+              </h3>
+              <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.1rem;">
+                <label style="padding: 0.6rem 0.8rem; border: 1px solid var(--border-subtle); border-radius: 6px; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;">
+                  <input type="radio" name="qtail"> O(1) because we have a direct tail pointer.
+                </label>
+                <label style="padding: 0.6rem 0.8rem; border: 1px solid var(--accent-primary); background: rgba(185, 111, 82, 0.05); border-radius: 6px; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;">
+                  <input type="radio" name="qtail" checked> O(n) because finding the node *prior* to tail requires traversing from head.
+                </label>
+                <label style="padding: 0.6rem 0.8rem; border: 1px solid var(--border-subtle); border-radius: 6px; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;">
+                  <input type="radio" name="qtail"> O(log n) using binary pointer jumping.
+                </label>
+              </div>
+              <button class="btn btn-primary" onclick="alert('✓ Correct! In a singly linked list, pointers are strictly unidirectional. Even with a tail pointer, finding the second-to-last node requires traversing O(n) from the head.')">
+                Submit Answer
+              </button>
+            </div>
+          </div>
+
+          <!-- ========================================== -->
+          <!-- SCREEN 5: MY PROGRESS                      -->
+          <!-- ========================================== -->
+          <div id="screen-learner-progress" class="screen-panel">
+            <h1 style="font-size: 1.4rem; margin-bottom: 0.25rem;">Learning Progress & Diagnostic Analytics</h1>
+            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1.25rem;">
+              Measured mastery based solely on verified checkpoint responses and practice attempts.
+            </p>
+
+            <div class="feed-grid">
+              <div class="card">
+                <div style="font-size: 0.75rem; color: var(--text-secondary);">Topics Explored</div>
+                <div style="font-size: 1.6rem; font-weight: 700; margin: 0.2rem 0;">1 Focus Topic</div>
+                <div style="font-size: 0.78rem; color: var(--accent-primary);">Data Structures: Linked Lists</div>
+              </div>
+              <div class="card">
+                <div style="font-size: 0.75rem; color: var(--text-secondary);">Checkpoints Answered</div>
+                <div style="font-size: 1.6rem; font-weight: 700; margin: 0.2rem 0;">28 Questions</div>
+                <div style="font-size: 0.78rem; color: var(--status-success);">22 Correct (78.5% Accuracy)</div>
+              </div>
+              <div class="card">
+                <div style="font-size: 0.75rem; color: var(--text-secondary);">Diagnostic Status</div>
+                <div style="font-size: 1.6rem; font-weight: 700; margin: 0.2rem 0;">Progressing</div>
+                <div style="font-size: 0.78rem; color: #8A6417;">1 Learning Gap Flagged</div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3 style="font-size: 1rem; margin-bottom: 0.9rem;">Topic Mastery Breakdown</h3>
+              <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.88rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-subtle);">
+                  <span>Linked Lists: Node Insertion</span>
+                  <span class="pill pill-green">85% Mastered</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-subtle);">
+                  <span>Linked Lists: Traversal & Search</span>
+                  <span class="pill pill-green">90% Mastered</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span>Linked Lists: Tail Deletion & Memory Leaks</span>
+                  <span class="pill pill-gold">45% Needs Review</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="card" style="border-left: 4px solid var(--accent-secondary);">
+              <h4 style="font-size: 0.95rem; margin-bottom: 0.35rem;">Diagnosed Learning Gap & Recommendation</h4>
+              <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 0.9rem;">
+                Evidence shows difficulty with pointer detaching when removing elements from a single-element list.
+              </p>
+              <button class="btn btn-primary" onclick="showScreen('screen-learner-learn', document.querySelectorAll('.nav-item')[2])">
+                Start Recommended Practice: "Head Pointer Edge Cases" &rarr;
+              </button>
+            </div>
+          </div>
+
+          <!-- ========================================== -->
+          <!-- SCREEN 6: SAVED LESSONS                    -->
+          <!-- ========================================== -->
+          <div id="screen-learner-saved" class="screen-panel">
+            <h1 style="font-size: 1.4rem; margin-bottom: 0.25rem;">Saved Lessons & Bookmarks</h1>
+            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1.25rem;">
+              Resume bookmarked interactive lessons and historical simulation states.
+            </p>
+
+            <div class="card">
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+                <div>
+                  <h3 style="font-size: 1.05rem;">Singly Linked List Pointer Reversal</h3>
+                  <p style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.2rem;">
+                    Saved Oct 17, 2026 • Subject: Data Structures • Includes interactive simulator state
+                  </p>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                  <button class="btn btn-secondary" onclick="alert('Bookmark removed.')">Remove</button>
+                  <button class="btn btn-primary" onclick="showScreen('screen-learner-learn', document.querySelectorAll('.nav-item')[2])">
+                    Open Saved Session &rarr;
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+                <div>
+                  <h3 style="font-size: 1.05rem;">Arrays vs Linked Lists: Memory Locality</h3>
+                  <p style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.2rem;">
+                    Saved Oct 15, 2026 • CPU cache line benefits vs dynamic pointer flexibility
+                  </p>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                  <button class="btn btn-secondary" onclick="alert('Bookmark removed.')">Remove</button>
+                  <button class="btn btn-primary" onclick="showScreen('screen-learner-learn', document.querySelectorAll('.nav-item')[2])">
+                    Open Saved Session &rarr;
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ========================================== -->
+          <!-- SCREEN 7: ADMIN DASHBOARD                  -->
+          <!-- ========================================== -->
+          <div id="screen-admin-dashboard" class="screen-panel">
+            <h1 style="font-size: 1.4rem; margin-bottom: 0.25rem;">Admin Operations Overview</h1>
+            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1.25rem;">
+              Real-time health of vector store, document ingestion pipelines, and generation caching.
+            </p>
+            <div class="feed-grid">
+              <div class="card">
+                <div style="font-size: 0.75rem; color: var(--text-secondary);">Verified Textbooks</div>
+                <div style="font-size: 1.8rem; font-weight: 700; margin: 0.2rem 0;">6 Books</div>
+                <div style="font-size: 0.78rem; color: var(--status-success);">OpenStax & OER Verified</div>
+              </div>
+              <div class="card">
+                <div style="font-size: 0.75rem; color: var(--text-secondary);">Vector Chunks (ChromaDB)</div>
+                <div style="font-size: 1.8rem; font-weight: 700; margin: 0.2rem 0;">28 Chunks</div>
+                <div style="font-size: 0.78rem; color: var(--accent-primary);">Cosine Distance Space</div>
+              </div>
+              <div class="card">
+                <div style="font-size: 0.75rem; color: var(--text-secondary);">Generation Cache Hit Rate</div>
+                <div style="font-size: 1.8rem; font-weight: 700; margin: 0.2rem 0;">66.7%</div>
+                <div style="font-size: 0.78rem; color: var(--status-success);">2 Hits / 3 Requests</div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3 style="font-size: 0.95rem; margin-bottom: 0.75rem;">Recent Generation Jobs</h3>
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Job ID</th><th>Topic Query</th><th>Status</th><th>Latency</th><th>Cache</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="font-family: var(--font-mono);">job_8f912c</td>
+                    <td>What is Newton's Second Law</td>
+                    <td><span class="pill pill-green">COMPLETED</span></td>
+                    <td>1.4s</td>
+                    <td>HIT</td>
+                  </tr>
+                  <tr>
+                    <td style="font-family: var(--font-mono);">job_33a019</td>
+                    <td>Explain Python Functions</td>
+                    <td><span class="pill pill-green">COMPLETED</span></td>
+                    <td>3.8s</td>
+                    <td>MISS</td>
+                  </tr>
+                  <tr>
+                    <td style="font-family: var(--font-mono);">job_09eb41</td>
+                    <td>Capital of Atlantis (Out of Scope)</td>
+                    <td><span class="pill pill-gold">ABSTAINED</span></td>
+                    <td>0.2s</td>
+                    <td>MISS</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- ========================================== -->
+          <!-- SCREEN 8: ADMIN USERS                      -->
+          <!-- ========================================== -->
+          <div id="screen-admin-users" class="screen-panel">
+            <h1 style="font-size: 1.4rem; margin-bottom: 0.25rem;">User Management</h1>
+            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1.25rem;">
+              Manage user authorizations and audit engagement across learner accounts.
+            </p>
+            <div class="card">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <input type="text" placeholder="Search users by name..." style="padding: 0.45rem 0.8rem; font-size: 0.82rem; border: 1px solid var(--border-subtle); border-radius: 6px; width: 220px;">
+                <span style="font-size: 0.8rem; color: var(--text-secondary);">Showing 3 Registered Accounts</span>
+              </div>
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Hasan Musamji</strong></td>
+                    <td>hasan@example.com</td>
+                    <td>Learner</td>
+                    <td><span class="pill pill-green">Active</span></td>
+                    <td><button class="btn btn-secondary" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;" onclick="alert('Viewing profile for Hasan.')">Edit</button></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Mukhtar Momin</strong></td>
+                    <td>mukhtar@example.com</td>
+                    <td>Administrator</td>
+                    <td><span class="pill pill-green">Active</span></td>
+                    <td><button class="btn btn-secondary" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;" onclick="alert('Admin role verified.')">Edit</button></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Ahsan Builds</strong></td>
+                    <td>ahsan@example.com</td>
+                    <td>Learner</td>
+                    <td><span class="pill pill-green">Active</span></td>
+                    <td><button class="btn btn-secondary" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;" onclick="alert('Viewing profile for Ahsan.')">Edit</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- ========================================== -->
+          <!-- SCREEN 9: ADMIN COURSES                    -->
+          <!-- ========================================== -->
+          <div id="screen-admin-courses" class="screen-panel">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+              <div>
+                <h1 style="font-size: 1.4rem; margin-bottom: 0.25rem;">Subject & Curriculum Catalogue</h1>
+                <p style="color: var(--text-secondary); font-size: 0.85rem;">Manage courses, topics, and prerequisite trees.</p>
+              </div>
+              <button class="btn btn-primary" onclick="alert('New Subject creation modal.')">+ Add Subject</button>
+            </div>
+            <div class="card">
+              <h3 style="font-size: 1rem; margin-bottom: 0.6rem;">Data Structures &rarr; Linked Lists</h3>
+              <p style="font-size: 0.84rem; color: var(--text-secondary); line-height: 1.45; margin-bottom: 0.9rem;">
+                Curriculum scope: Singly, Doubly, and Circular Linked Lists. Connected to textbook: <em>Open Data Structures</em>. Vector index contains verified chunks.
+              </p>
+              <div style="display: flex; gap: 0.5rem;">
+                <span class="pill pill-green">Status: Published</span>
+                <span class="pill pill-warm">Focus Topic: Linked Lists</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- ========================================== -->
+          <!-- SCREEN 10: ADMIN KNOWLEDGE BASE            -->
+          <!-- ========================================== -->
+          <div id="screen-admin-kb" class="screen-panel">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+              <div>
+                <h1 style="font-size: 1.4rem; margin-bottom: 0.25rem;">Academic Content & Knowledge Base</h1>
+                <p style="color: var(--text-secondary); font-size: 0.85rem;">Verified OER source material ingested into persistent ChromaDB storage.</p>
+              </div>
+              <button class="btn btn-primary" onclick="alert('Upload academic textbook document.')">+ Ingest Document</button>
+            </div>
+            
+            <div class="card">
+              <h3 style="font-size: 1rem; margin-bottom: 0.75rem;">Verified Ingested Textbooks</h3>
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Title</th><th>Subject</th><th>License</th><th>Status</th><th>Chunks</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Elementary Algebra 2e</strong></td><td>Mathematics</td><td>CC BY 4.0</td><td><span class="pill pill-green">INDEXED</span></td><td>5 chunks</td>
+                  </tr>
+                  <tr>
+                    <td><strong>University Physics Vol 1</strong></td><td>Physics</td><td>CC BY 4.0</td><td><span class="pill pill-green">INDEXED</span></td><td>5 chunks</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Think Python 2e</strong></td><td>Computer Science</td><td>CC BY-NC 3.0</td><td><span class="pill pill-green">INDEXED</span></td><td>5 chunks</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Concepts of Biology</strong></td><td>Biology</td><td>CC BY 4.0</td><td><span class="pill pill-green">INDEXED</span></td><td>4 chunks</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- RAG Diagnostic Test Bench -->
+            <div class="card">
+              <h3 style="font-size: 1rem; margin-bottom: 0.4rem;">RAG Retrieval Diagnostic Bench</h3>
+              <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+                Test similarity retrieval against local ChromaDB without launching full video synthesis.
+              </p>
+              <div style="display: flex; gap: 0.5rem; margin-bottom: 0.9rem;">
+                <input type="text" id="ragTestInput" value="What is Newton's Second Law of Motion?" style="flex: 1; padding: 0.45rem 0.8rem; font-size: 0.82rem; border: 1px solid var(--border-subtle); border-radius: 6px;">
+                <button class="btn btn-primary" onclick="runRagTest()">Test Retrieval</button>
+              </div>
+              <div id="ragTestResult" style="background: var(--bg-surface-warm); padding: 0.8rem; border-radius: 6px; font-size: 0.82rem; font-family: var(--font-mono); border: 1px solid var(--border-subtle);">
+                Result: Top chunk from University Physics Vol 1 (p. 104) • Similarity: 0.785 • Sufficiency: Pass (&gt; 0.68)
+              </div>
+            </div>
+          </div>
+
+          <!-- ========================================== -->
+          <!-- SCREEN 11: ADMIN ANALYTICS & SETTINGS      -->
+          <!-- ========================================== -->
+          <div id="screen-admin-analytics" class="screen-panel">
+            <h1 style="font-size: 1.4rem; margin-bottom: 0.25rem;">Platform Analytics & Settings</h1>
+            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1.25rem;">
+              Inspect runtime safeguards and API configurations.
+            </p>
+            <div class="card">
+              <h3 style="font-size: 1rem; margin-bottom: 0.6rem;">Runtime Security Safeguards</h3>
+              <p style="font-size: 0.84rem; color: var(--text-secondary); line-height: 1.45; margin-bottom: 0.9rem;">
+                API keys, embedding models, and backend secrets are strictly encapsulated on the FastAPI server. The browser client receives only validated educational payloads.
+              </p>
+              <table class="data-table">
+                <thead>
+                  <tr><th>Configuration Parameter</th><th>Setting</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>API Prefix</td><td><code>/api/v1</code></td><td><span class="pill pill-green">Verified</span></td></tr>
+                  <tr><td>ChromaDB Directory</td><td><code>backend/data/vector_store</code></td><td><span class="pill pill-green">Mounted</span></td></tr>
+                  <tr><td>Media Output Cache</td><td><code>backend/data/processed</code></td><td><span class="pill pill-green">Active</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- AUTH PROPOSAL MODAL -->
+  <div class="modal-overlay" id="authModal">
+    <div class="modal-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div style="font-weight: 700; font-size: 1.1rem; color: var(--text-primary);">Sign In to EduNex</div>
+        <button style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-secondary);" onclick="closeAuthModal()">&times;</button>
+      </div>
+      <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 1rem;">
+        Select your intended role to preview the corresponding workspace experience.
+      </p>
+      <div style="display: flex; gap: 0.75rem; margin-bottom: 1rem;">
+        <label style="flex: 1; padding: 0.6rem; border: 1px solid var(--accent-primary); border-radius: 6px; font-size: 0.82rem; cursor: pointer; background: rgba(185, 111, 82, 0.05);">
+          <input type="radio" name="authRole" checked> <strong>Learner</strong>
+        </label>
+        <label style="flex: 1; padding: 0.6rem; border: 1px solid var(--border-subtle); border-radius: 6px; font-size: 0.82rem; cursor: pointer;">
+          <input type="radio" name="authRole"> <strong>Admin</strong>
+        </label>
+      </div>
+      <div style="margin-bottom: 0.75rem;">
+        <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.25rem;">Email Address</label>
+        <input type="email" value="hasan@example.com" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-subtle); border-radius: 6px; font-size: 0.85rem;">
+      </div>
+      <div style="margin-bottom: 1.25rem;">
+        <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.25rem;">Password</label>
+        <input type="password" value="••••••••••••" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-subtle); border-radius: 6px; font-size: 0.85rem;">
+      </div>
+      <button class="btn btn-primary" style="width: 100%; justify-content: center; padding: 0.65rem;" onclick="closeAuthModal()">
+        Enter Workspace &rarr;
+      </button>
+      <div style="margin-top: 0.9rem; font-size: 0.72rem; color: var(--text-secondary); text-align: center;">
+        * Hackathon Note: Authentication UI is presented as a design proposal.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function setViewport(size, btn) {
+      document.querySelectorAll('.viewport-controls button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const container = document.getElementById('viewportContainer');
+      container.className = 'viewport-container ' + (size === 'desktop' ? '' : size);
+    }
+
+    function showScreen(screenId, navEl) {
+      document.querySelectorAll('.screen-panel').forEach(p => p.classList.remove('active'));
+      const target = document.getElementById(screenId);
+      if (target) target.classList.add('active');
+
+      if (navEl) {
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        navEl.classList.add('active');
+        const title = navEl.innerText.trim();
+        const section = navEl.parentElement.querySelector('.sidebar-section-title')?.innerText || 'Workspace';
+        document.getElementById('breadcrumbText').innerHTML = `${section} &gt; <strong style="color: var(--text-primary);">${title}</strong>`;
+      }
+    }
+
+    function toggleLearnState(state) {
+      const stateA = document.getElementById('learnStateA');
+      const stateB = document.getElementById('learnStateB');
+      const btnA = document.getElementById('btnStateA');
+      const btnB = document.getElementById('btnStateB');
+      const badge = document.getElementById('stateBadge');
+      const heading = document.getElementById('lessonTitleHeading');
+
+      if (state === 'A') {
+        stateA.style.display = 'block';
+        stateB.style.display = 'none';
+        btnA.className = 'btn btn-primary';
+        btnB.className = 'btn';
+        btnB.style.background = 'transparent';
+        badge.innerText = 'State A: Initial Learning Workspace';
+        badge.className = 'pill pill-gold';
+        heading.innerText = 'Discovery & Prompt Workspace';
+      } else {
+        stateA.style.display = 'none';
+        stateB.style.display = 'block';
+        btnB.className = 'btn btn-primary';
+        btnA.className = 'btn';
+        btnA.style.background = 'transparent';
+        badge.innerText = 'State B: Active Whiteboard Session';
+        badge.className = 'pill pill-warm';
+        heading.innerText = 'Lesson: Singly Linked List Node Insertion';
+      }
+    }
+
+    function selectSuggestedPrompt(text) {
+      const chatInput = document.getElementById('chatInput');
+      chatInput.value = text;
+      toggleLearnState('B');
+      sendChatMessage();
+    }
+
+    function sendChatMessage() {
+      const input = document.getElementById('chatInput');
+      const val = input.value.trim();
+      if (!val) return;
+
+      const container = document.getElementById('chatMessages');
+      const userMsg = document.createElement('div');
+      userMsg.className = 'chat-msg user';
+      userMsg.innerText = val;
+      container.appendChild(userMsg);
+      input.value = '';
+
+      setTimeout(() => {
+        const tutorMsg = document.createElement('div');
+        tutorMsg.className = 'chat-msg tutor';
+        tutorMsg.innerHTML = `Analyzing textbook reference for <em>"${val}"</em>... In Pat Morin's <em>Open Data Structures</em> (Chap. 3), this operation has an algorithmic time complexity of O(1) assuming the predecessor reference is maintained.`;
+        container.appendChild(tutorMsg);
+        container.scrollTop = container.scrollHeight;
+      }, 500);
+
+      container.scrollTop = container.scrollHeight;
+    }
+
+    let nodeCount = 3;
+    function addNode() {
+      const val = document.getElementById('nodeValInput').value || '42';
+      const canvas = document.getElementById('vizCanvas');
+      
+      const arrow = document.createElement('div');
+      arrow.className = 'arrow-line';
+      arrow.innerHTML = '&rarr;';
+
+      const node = document.createElement('div');
+      node.className = 'node-box';
+      node.innerHTML = `<div class="node-val">${val}</div><div class="node-ptr">next: NULL</div>`;
+
+      // Update previous tail pointer
+      const ptrs = canvas.querySelectorAll('.node-ptr');
+      if (ptrs.length > 0) ptrs[ptrs.length - 1].innerText = 'next: •';
+
+      canvas.appendChild(arrow);
+      canvas.appendChild(node);
+      nodeCount++;
+      document.getElementById('vizLog').innerText = `State: Allocated Node(${val}) at memory address 0x${(0x2000 + nodeCount * 0x120).toString(16)}. Pointer linked. List size: ${nodeCount}.`;
+    }
+
+    function deleteNode() {
+      const canvas = document.getElementById('vizCanvas');
+      const nodes = canvas.querySelectorAll('.node-box');
+      const arrows = canvas.querySelectorAll('.arrow-line');
+      if (nodes.length <= 1) {
+        alert('Underflow safety: Cannot delete from a 1-node list in this demonstration.');
+        return;
+      }
+      nodes[nodes.length - 1].remove();
+      arrows[arrows.length - 1].remove();
+      nodeCount--;
+      
+      const remainingPtrs = canvas.querySelectorAll('.node-ptr');
+      if (remainingPtrs.length > 0) remainingPtrs[remainingPtrs.length - 1].innerText = 'next: NULL';
+      document.getElementById('vizLog').innerText = `State: Removed tail node. Tail pointer reassigned to NULL. List size: ${nodeCount}.`;
+    }
+
+    function resetList() {
+      const canvas = document.getElementById('vizCanvas');
+      canvas.innerHTML = `
+        <div style="font-family: var(--font-mono); font-size: 0.8rem; font-weight: 700; color: var(--accent-primary);">HEAD &rarr;</div>
+        <div class="node-box"><div class="node-val">10</div><div class="node-ptr">next: •</div></div>
+        <div class="arrow-line">&rarr;</div>
+        <div class="node-box"><div class="node-val">25</div><div class="node-ptr">next: •</div></div>
+        <div class="arrow-line">&rarr;</div>
+        <div class="node-box"><div class="node-val">70</div><div class="node-ptr">next: NULL</div></div>
+      `;
+      nodeCount = 3;
+      document.getElementById('vizLog').innerText = 'State: Reset to 3 default nodes (10 -> 25 -> 70 -> NULL).';
+    }
+
+    function runRagTest() {
+      const input = document.getElementById('ragTestInput').value;
+      const res = document.getElementById('ragTestResult');
+      res.innerText = `Querying ChromaDB vector index... Top match for "${input}": University Physics Vol 1 (p. 104) • Cosine Distance: 0.215 • Sufficiency: 0.785 (PASSED).`;
+    }
+
+    function openAuthModal() {
+      document.getElementById('authModal').classList.add('active');
+    }
+    function closeAuthModal() {
+      document.getElementById('authModal').classList.remove('active');
+    }
+  </script>
+</body>
+</html>

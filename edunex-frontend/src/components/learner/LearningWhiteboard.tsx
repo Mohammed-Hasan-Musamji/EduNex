@@ -61,7 +61,7 @@ export function LearningWhiteboard({ lesson, lessonSessionId, onBackToFeed, onNe
   };
 
   return (
-    <div className="flex h-full flex-col rounded-lg border border-border bg-white">
+    <div className="flex h-full flex-col rounded-2xl border border-border/80 bg-card shadow-xs">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4">
         <div className="flex items-center gap-2">
           <span className="flex size-8 items-center justify-center rounded-md bg-primary/10 text-primary">

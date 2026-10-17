@@ -28,7 +28,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           aria-invalid={Boolean(error)}
           aria-describedby={cn(errorId, hintId).trim() || undefined}
           className={cn(
-            "h-10 w-full rounded-md border border-border bg-white px-3 text-sm text-text placeholder:text-text-muted",
+            "h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-text placeholder:text-text-muted transition-colors",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
             error && "border-error",
             className,
