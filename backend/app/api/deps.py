@@ -39,6 +39,13 @@ def get_current_learner(request: Request, db: Session = Depends(get_db)) -> Lear
     return learner
 
 
+def get_optional_learner(request: Request, db: Session = Depends(get_db)) -> Learner | None:
+    """The signed-in learner if there is a valid session, else None (for public routes that personalize)."""
+    token = request.cookies.get(get_settings().session_cookie_name)
+    learner_id = decode_session_token(token) if token else None
+    return db.get(Learner, learner_id) if learner_id else None
+
+
 def require_admin(current: Learner = Depends(get_current_learner)) -> Learner:
     if current.role != LearnerRole.admin:
         raise ForbiddenError("You do not have permission to do that.")

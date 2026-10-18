@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, verify_owner_or_admin
 from app.models.learner import Learner
-from app.schemas.learner import LearnerPreferences, LearnerRead, LearnerUpdate
+from app.schemas.learner import LearnerPreferences, LearnerRead, LearnerUpdate, OnboardingUpdate
 from app.services.learner_service import LearnerService
 
 router = APIRouter(prefix="/learners", tags=["learners"])
@@ -52,3 +52,15 @@ def update_learner_preferences(
     _: Learner = Depends(verify_owner_or_admin),
 ) -> LearnerPreferences:
     return LearnerService(db).update_preferences(learner_id, payload)
+
+
+@router.put("/{learner_id}/onboarding", response_model=LearnerRead)
+def update_onboarding(
+    learner_id: uuid.UUID,
+    payload: OnboardingUpdate,
+    db: Session = Depends(get_db),
+    _: Learner = Depends(verify_owner_or_admin),
+) -> LearnerRead:
+    learner = LearnerService(db).update_onboarding(learner_id, payload.status)
+    return LearnerRead.model_validate(learner)
+

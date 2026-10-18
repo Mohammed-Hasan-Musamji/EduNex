@@ -1,9 +1,14 @@
+<<<<<<< HEAD
 "use client";
 
 import { Check, CheckCircle2, HelpCircle, Lightbulb, X, XCircle } from "lucide-react";
 import { SpotlightCard } from "@/components/ui/SpotlightCard";
 import { Input } from "@/components/ui/Input";
 import { playClickSound, playHoverTick } from "@/lib/audio-effects";
+=======
+import { CheckCircle2, FileText, XCircle } from "lucide-react";
+import { DifficultyBadge } from "@/components/ui/Badge";
+>>>>>>> b5abe61 (Implemented 3)
 import { cn } from "@/lib/utils";
 import type { AssessmentQuestion as AssessmentQuestionType, QuestionResult } from "@/types/assessment";
 
@@ -12,11 +17,9 @@ interface AssessmentQuestionProps {
   index: number;
   selectedOptionIndex?: number;
   selectedBoolean?: boolean;
-  textAnswer?: string;
   result?: QuestionResult;
   onSelectOption: (index: number) => void;
   onSelectBoolean: (value: boolean) => void;
-  onChangeText: (value: string) => void;
 }
 
 const OPTION_LETTERS = ["A", "B", "C", "D", "E", "F"];
@@ -26,17 +29,16 @@ export function AssessmentQuestion({
   index,
   selectedOptionIndex,
   selectedBoolean,
-  textAnswer,
   result,
   onSelectOption,
   onSelectBoolean,
-  onChangeText,
 }: AssessmentQuestionProps) {
   const isSubmitted = Boolean(result);
   const isAnswered =
     selectedOptionIndex !== undefined || selectedBoolean !== undefined || Boolean(textAnswer?.trim());
 
   return (
+<<<<<<< HEAD
     <SpotlightCard
       className={cn(
         "p-6 sm:p-7 transition-all duration-300",
@@ -75,10 +77,36 @@ export function AssessmentQuestion({
             )}
           </span>
         )}
+=======
+    <div className="rounded-[var(--radius-lg)] border border-border bg-card p-4 shadow-xs sm:p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="mb-1.5 flex flex-wrap items-center gap-2 text-[11px] text-text-subtle">
+            {question.difficulty && <DifficultyBadge difficulty={question.difficulty} />}
+            {question.origin === "generated" && (
+              <span className="inline-flex items-center gap-1">
+                <FileText className="size-3" aria-hidden="true" />
+                AI-written from {question.sourceTitle ?? "the textbook"}
+                {question.sourcePage ? `, PDF p. ${question.sourcePage}` : ""}
+              </span>
+            )}
+          </div>
+          <p className="font-medium text-text">
+            {index + 1}. {question.prompt}
+          </p>
+        </div>
+        {isSubmitted &&
+          (result!.correct ? (
+            <CheckCircle2 className="size-5 shrink-0 text-success" aria-label="Correct" />
+          ) : (
+            <XCircle className="size-5 shrink-0 text-error" aria-label="Incorrect" />
+          ))}
+>>>>>>> b5abe61 (Implemented 3)
       </div>
 
       {/* Multiple Choice Options */}
       {question.type === "multiple_choice" ? (
+<<<<<<< HEAD
         <div className="mt-5 flex flex-col gap-2.5" role="radiogroup" aria-label={question.prompt}>
           {question.options?.map((option, optionIndex) => {
             const isSelected = selectedOptionIndex === optionIndex;
@@ -182,6 +210,51 @@ export function AssessmentQuestion({
             aria-label={question.prompt}
           />
         </div>
+=======
+        <div className="mt-3 flex flex-col gap-2" role="radiogroup" aria-label={question.prompt}>
+          {question.options?.map((option, optionIndex) => (
+            <button
+              key={optionIndex}
+              type="button"
+              role="radio"
+              aria-checked={selectedOptionIndex === optionIndex}
+              disabled={isSubmitted}
+              onClick={() => onSelectOption(optionIndex)}
+              className={cn(
+                "min-h-11 rounded-md border px-3 py-2 text-left text-sm transition-colors",
+                selectedOptionIndex === optionIndex
+                  ? "border-primary bg-primary-soft"
+                  : "border-border bg-card hover:bg-ivory",
+                isSubmitted && "cursor-default opacity-90",
+              )}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="mt-3 flex gap-2" role="radiogroup" aria-label={question.prompt}>
+          {[true, false].map((value) => (
+            <button
+              key={String(value)}
+              type="button"
+              role="radio"
+              aria-checked={selectedBoolean === value}
+              disabled={isSubmitted}
+              onClick={() => onSelectBoolean(value)}
+              className={cn(
+                "min-h-11 flex-1 rounded-md border px-3 py-2 text-sm font-medium transition-colors",
+                selectedBoolean === value
+                  ? "border-primary bg-primary-soft"
+                  : "border-border bg-card hover:bg-ivory",
+                isSubmitted && "cursor-default opacity-90",
+              )}
+            >
+              {value ? "True" : "False"}
+            </button>
+          ))}
+        </div>
+>>>>>>> b5abe61 (Implemented 3)
       )}
 
       {/* Explanation Box */}

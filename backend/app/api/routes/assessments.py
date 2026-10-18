@@ -9,17 +9,19 @@ the authenticated caller.
 
 import uuid
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_learner, get_db, verify_owner_or_admin
+from app.api.deps import get_current_learner, get_db, get_optional_learner, verify_owner_or_admin
 from app.models.assessment import AssessmentAttempt
 from app.models.learner import Learner
 from app.schemas.assessment import (
     AttemptCreate,
     AttemptRead,
     AttemptResult,
+    PracticeRoundCreate,
+    PracticeRoundResult,
     QuestionPublic,
 )
 from app.services.assessment_service import AssessmentService
@@ -28,8 +30,13 @@ router = APIRouter(tags=["assessments"])
 
 
 @router.get("/topics/{topic_id}/questions", response_model=list[QuestionPublic])
-def list_topic_questions(topic_id: uuid.UUID, db: Session = Depends(get_db)) -> list[QuestionPublic]:
-    questions = AssessmentService(db).list_questions(topic_id)
+def list_topic_questions(
+    topic_id: uuid.UUID,
+    limit: int | None = Query(default=None, ge=1, le=50),
+    db: Session = Depends(get_db),
+    learner: Learner | None = Depends(get_optional_learner),
+) -> list[QuestionPublic]:
+    questions = AssessmentService(db).list_questions(topic_id, learner=learner, limit=limit)
     return [QuestionPublic.model_validate(q) for q in questions]
 
 
@@ -49,6 +56,18 @@ def submit_attempt(
         explanation=explanation,
         created_at=attempt.created_at,
     )
+
+
+@router.post("/assessments/rounds", response_model=PracticeRoundResult, status_code=status.HTTP_201_CREATED)
+def submit_practice_round(
+    payload: PracticeRoundCreate,
+    db: Session = Depends(get_db),
+    current: Learner = Depends(get_current_learner),
+) -> PracticeRoundResult:
+    """Grades a whole practice round on the server, records it, and awards
+    XP/achievements once. Retrying with the same client_request_id replays
+    the stored result (replayed=true, rewards=null)."""
+    return AssessmentService(db).submit_practice_round(current, payload)
 
 
 @router.get("/learners/{learner_id}/assessments", response_model=list[AttemptRead])

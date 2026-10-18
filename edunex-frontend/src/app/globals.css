@@ -1,6 +1,17 @@
 @import "tailwindcss";
 
+/*
+ * EduNex design tokens.
+ *
+ * A warm "scholar's desk" palette: paper ivory surfaces, terracotta as the
+ * single action color, deep teal for learning progress, and saffron reserved
+ * for rewards (XP, streaks, achievements). Text pairs were checked for
+ * WCAG AA contrast (primary on white 5.4:1, muted text on ivory 6.7:1).
+ * Status colors (success/warning/error) only ever mean state and always
+ * ship with an icon + label.
+ */
 :root {
+<<<<<<< HEAD
   color-scheme: light;
   --color-ivory: #f0f7ff;
   --color-card: #ffffff;
@@ -18,10 +29,68 @@
   --color-error-bg: #fef2f2;
   --color-focus-ring: #0284c7;
   --color-primary-glow: rgba(2, 132, 199, 0.16);
+=======
+  /* Surfaces */
+  --color-ivory: #faf7f2;
+  --color-card: #ffffff;
+  --color-surface-2: #f4efe7;
+  --color-surface-3: #ebe4d8;
+  --color-border: #e6ddd0;
+  --color-border-strong: #d3c7b6;
 
+  /* Ink */
+  --color-text: #24211c;
+  --color-text-muted: #5c574f;
+  --color-text-subtle: #7b766d;
+
+  /* Brand */
+  --color-primary: #a9502f;
+  --color-primary-hover: #8f4226;
+  --color-primary-soft: #f8ebe4;
+  --color-accent: #1d6b67;
+  --color-accent-hover: #17534f;
+  --color-accent-soft: #dcefed;
+  /* Gold is decorative (fills, icons); --color-secondary is its text-safe step. */
+  --color-gold: #d99a2b;
+  --color-gold-soft: #fbf0d6;
+  --color-secondary: #8a5d07;
+  --color-ink-deep: #1f1c18;
+
+  /* Status */
+  --color-success: #2f7a46;
+  --color-success-bg: #e5f2e8;
+  --color-warning: #8f6200;
+  --color-warning-bg: #fbf0d6;
+  --color-error: #b3362c;
+  --color-error-bg: #fbe9e7;
+  --color-focus-ring: #a9502f;
+>>>>>>> b5abe61 (Implemented 3)
+
+  /* Data-viz: single-series line uses --color-primary; activity heatmap is a
+   * validated one-hue ordinal ramp (zero days use --color-surface-2). */
+  --viz-heat-1: #7fbdb6;
+  --viz-heat-2: #4f9e96;
+  --viz-heat-3: #2b7f77;
+  --viz-heat-4: #1a5a54;
+  --viz-grid: #ebe5da;
+  --viz-axis: #d3c7b6;
+
+  /* Shape & depth */
   --radius-sm: 0.375rem;
   --radius-md: 0.625rem;
   --radius-lg: 0.875rem;
+  --radius-xl: 1.25rem;
+  --shadow-xs: 0 1px 2px rgb(36 33 28 / 0.05);
+  --shadow-sm: 0 1px 2px rgb(36 33 28 / 0.04), 0 2px 8px -2px rgb(36 33 28 / 0.06);
+  --shadow-md: 0 2px 4px rgb(36 33 28 / 0.04), 0 12px 24px -8px rgb(36 33 28 / 0.12);
+  --shadow-lg: 0 4px 8px rgb(36 33 28 / 0.05), 0 24px 48px -12px rgb(36 33 28 / 0.18);
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+  --duration-slow: 450ms;
 }
 
 /* User & Role Dynamic Themes */
@@ -156,12 +225,23 @@ button[aria-label*="DevTools" i] {
 @theme inline {
   --color-ivory: var(--color-ivory);
   --color-card: var(--color-card);
+  --color-surface-2: var(--color-surface-2);
+  --color-surface-3: var(--color-surface-3);
   --color-primary: var(--color-primary);
   --color-primary-hover: var(--color-primary-hover);
+  --color-primary-soft: var(--color-primary-soft);
+  --color-accent: var(--color-accent);
+  --color-accent-hover: var(--color-accent-hover);
+  --color-accent-soft: var(--color-accent-soft);
+  --color-gold: var(--color-gold);
+  --color-gold-soft: var(--color-gold-soft);
   --color-secondary: var(--color-secondary);
+  --color-ink-deep: var(--color-ink-deep);
   --color-text: var(--color-text);
   --color-text-muted: var(--color-text-muted);
+  --color-text-subtle: var(--color-text-subtle);
   --color-border: var(--color-border);
+  --color-border-strong: var(--color-border-strong);
   --color-success: var(--color-success);
   --color-success-bg: var(--color-success-bg);
   --color-warning: var(--color-warning);
@@ -170,6 +250,16 @@ button[aria-label*="DevTools" i] {
   --color-error-bg: var(--color-error-bg);
   --font-sans: var(--font-sans);
   --font-serif: var(--font-serif);
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --radius-xl: var(--radius-xl);
+  --ease-out: var(--ease-out);
+  --animate-enter: enter var(--duration-slow) var(--ease-out) both;
+  --animate-scale-in: scale-in var(--duration-base) var(--ease-spring) both;
+  --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-pop: pop 600ms var(--ease-spring) both;
 }
 
 html {
@@ -180,7 +270,15 @@ html {
 body {
   background: var(--color-ivory);
   color: var(--color-text);
+<<<<<<< HEAD
   transition: background-color 0.35s ease, color 0.35s ease;
+=======
+  /* A faint warm light from the top-left -- the only ambient effect, and static. */
+  background-image:
+    radial-gradient(1200px 600px at -10% -20%, rgb(217 154 43 / 0.07), transparent 60%),
+    radial-gradient(900px 500px at 110% -10%, rgb(29 107 103 / 0.05), transparent 60%);
+  background-attachment: fixed;
+>>>>>>> b5abe61 (Implemented 3)
 }
 
 * {
@@ -193,14 +291,111 @@ body {
   border-radius: var(--radius-sm);
 }
 
+::selection {
+  background: var(--color-primary-soft);
+  color: var(--color-ink-deep);
+}
+
+/* --- Motion primitives -------------------------------------------------- */
+
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--dx, 0px), var(--dy, 140px), 0) rotate(var(--rot, 360deg));
+    opacity: 0;
+  }
+}
+
+/* Staggered reveal: give children style="--i: n". Used sparingly (lists of cards). */
+.stagger > * {
+  animation: enter var(--duration-slow) var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 60ms);
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-2) 0%,
+    var(--color-surface-3) 40%,
+    var(--color-surface-2) 80%
+  );
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+}
+
+.confetti-piece {
+  position: absolute;
+  width: 8px;
+  height: 12px;
+  border-radius: 2px;
+  animation: confetti-fall 1100ms var(--ease-out) forwards;
+}
+
+/* Tabular figures only where numbers align (axes, table rows). */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+  .confetti-piece {
+    display: none;
   }
 }
 
@@ -214,6 +409,7 @@ body {
   border-radius: 999px;
 }
 
+<<<<<<< HEAD
 /* Custom Interactive & Ambient Animation Utilities */
 @keyframes floatSlow {
   0%, 100% {
@@ -362,3 +558,13 @@ body {
 
 
 
+=======
+@keyframes slide-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: none;
+  }
+}
+>>>>>>> b5abe61 (Implemented 3)

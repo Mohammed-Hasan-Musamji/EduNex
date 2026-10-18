@@ -20,7 +20,7 @@ import type { CurrentLearningStatus, NextStepRecommendation, StruggleArea } from
 import { cn } from "@/lib/utils";
 
 interface LearningFeedProps {
-  currentLearning: CurrentLearningStatus;
+  currentLearning: CurrentLearningStatus | null;
   struggleAreas: StruggleArea[];
   nextSteps: NextStepRecommendation[];
 }
@@ -46,6 +46,7 @@ export function LearningFeed({ currentLearning, struggleAreas, nextSteps }: Lear
         badge={currentLearning.status === "in_progress" ? "In Progress" : "Active"}
         badgeTone="primary"
       >
+<<<<<<< HEAD
         <div className="flex flex-1 flex-col justify-between">
           <div>
             <div className="flex items-center gap-2">
@@ -91,6 +92,27 @@ export function LearningFeed({ currentLearning, struggleAreas, nextSteps }: Lear
             </Link>
           </div>
         </div>
+=======
+        {currentLearning ? (
+          <>
+            <p className="font-medium text-text">{currentLearning.topicName}</p>
+            <p className="mt-1 text-sm text-text-muted">{currentLearning.objective}</p>
+            {typeof currentLearning.masteryLevel === "number" && (
+              <p className="mt-2 text-xs text-text-muted">
+                Demonstrated mastery: {formatPercentage(currentLearning.masteryLevel)}
+              </p>
+            )}
+            <Link
+              href={buildLearnUrl({ topicId: currentLearning.topicId })}
+              className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+            >
+              Continue learning <ArrowRight className="size-3.5" aria-hidden="true" />
+            </Link>
+          </>
+        ) : (
+          <p className="text-sm text-text-muted">No lesson in progress yet. Start one from Explore Subjects.</p>
+        )}
+>>>>>>> b5abe61 (Implemented 3)
       </LearningFeedCard>
 
       {/* 2. Where am I struggling? */}
@@ -102,6 +124,7 @@ export function LearningFeed({ currentLearning, struggleAreas, nextSteps }: Lear
         badgeTone={struggleAreas.length > 0 ? "warning" : "success"}
       >
         {struggleAreas.length === 0 ? (
+<<<<<<< HEAD
           <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-border/80 bg-ivory/30 p-6 text-center">
             <div className="flex size-11 items-center justify-center rounded-full bg-success/15 text-success shadow-xs">
               <CheckCircle2 className="size-6" />
@@ -144,12 +167,22 @@ export function LearningFeed({ currentLearning, struggleAreas, nextSteps }: Lear
                     Review concept <ArrowRight className="size-3 transition-transform group-hover/item:translate-x-0.5" />
                   </Link>
                 </div>
+=======
+          <p className="text-sm text-text-muted">Nothing flagged yet — complete a few practice questions to see this fill in.</p>
+        ) : (
+          <ul className="flex flex-col gap-3">
+            {struggleAreas.map((area) => (
+              <li key={`${area.topicId}-${area.conceptName}`} className="text-sm">
+                <p className="font-medium text-text">{area.conceptName}</p>
+                <p className="text-xs text-text-muted">{area.reason}</p>
+>>>>>>> b5abe61 (Implemented 3)
               </li>
             ))}
           </ul>
         )}
       </LearningFeedCard>
 
+<<<<<<< HEAD
       {/* 3. What can I do next? */}
       <LearningFeedCard
         icon={Compass}
@@ -193,6 +226,26 @@ export function LearningFeed({ currentLearning, struggleAreas, nextSteps }: Lear
             );
           })}
         </ul>
+=======
+      <LearningFeedCard icon={Compass} title="What can I do next?" description="Recommended next step">
+        {nextSteps.length === 0 ? (
+          <p className="text-sm text-text-muted">No recommendations yet — they appear once you have some progress history.</p>
+        ) : (
+          <ul className="flex flex-col gap-3">
+            {nextSteps.map((step) => (
+              <li key={step.href}>
+                <Link href={step.href} className="group flex items-start justify-between gap-2 text-sm">
+                  <span>
+                    <span className="block font-medium text-text group-hover:text-primary">{step.title}</span>
+                    <span className="block text-xs text-text-muted">{step.description}</span>
+                  </span>
+                  <ArrowRight className="mt-0.5 size-3.5 shrink-0 text-text-muted group-hover:text-primary" aria-hidden="true" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+>>>>>>> b5abe61 (Implemented 3)
       </LearningFeedCard>
     </div>
   );

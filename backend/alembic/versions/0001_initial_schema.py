@@ -63,6 +63,11 @@ def upgrade() -> None:
     )
     op.create_index("ix_subjects_slug", "subjects", ["slug"])
 
+<<<<<<< HEAD
+=======
+    # create_type=False: the type is created explicitly below; letting create_table
+    # create it again fails on PostgreSQL with DuplicateObject.
+>>>>>>> b5abe61 (Implemented 3)
     difficulty_enum = sa.Enum("beginner", "intermediate", "advanced", name="difficulty_level", create_type=False)
     difficulty_enum.create(bind, checkfirst=True)
 

@@ -17,7 +17,6 @@ import { VarkPreferenceSelector } from "@/components/learner/VarkPreferenceSelec
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { demoSubjects } from "@/lib/demo-data";
 import { startLearningSchema } from "@/lib/schemas";
 import { subjectsApi, learnerApi } from "@/lib/api-client";
 import { buildLearnUrl } from "@/lib/routes";
@@ -62,11 +61,7 @@ export default function SubjectsPage() {
     void loadSubjects();
   }, []);
 
-  const realIds = new Set((realSubjects ?? []).map((s) => s.slug));
-  const allSubjects: Array<Subject & { isDemo: boolean }> = [
-    ...(realSubjects ?? []).map((s) => ({ ...s, isDemo: false })),
-    ...demoSubjects.filter((s) => !realIds.has(s.slug)).map((s) => ({ ...s, isDemo: true })),
-  ];
+  const allSubjects: Subject[] = realSubjects ?? [];
 
   const filteredSubjects = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -247,7 +242,6 @@ export default function SubjectsPage() {
             <SubjectCard
               key={subject.id}
               subject={subject}
-              isDemo={subject.isDemo}
               isSelected={subject.id === selectedSubjectId}
               onSelect={() => handleSelectSubject(subject.id)}
             />

@@ -5,6 +5,7 @@ import {
   ClipboardCheck,
   TrendingUp,
   Bookmark,
+  BookOpenText,
   Users,
   BookOpen,
   Database,
@@ -17,14 +18,17 @@ export interface NavItem {
   label: string;
   href: string;
   icon: LucideIcon;
+  /** Shorter label for the mobile bottom tab bar. */
+  shortLabel?: string;
 }
 
 export const learnerNavItems: NavItem[] = [
-  { label: "Dashboard", href: routes.learner.dashboard, icon: LayoutDashboard },
-  { label: "Explore Subjects", href: routes.learner.subjects, icon: Compass },
-  { label: "Learn with AI", href: routes.learner.learn, icon: Sparkles },
-  { label: "Practice & Assessments", href: routes.learner.practice, icon: ClipboardCheck },
-  { label: "My Progress", href: routes.learner.progress, icon: TrendingUp },
+  { label: "Dashboard", href: routes.learner.dashboard, icon: LayoutDashboard, shortLabel: "Home" },
+  { label: "Explore Subjects", href: routes.learner.subjects, icon: Compass, shortLabel: "Explore" },
+  { label: "Learn with AI", href: routes.learner.learn, icon: Sparkles, shortLabel: "Learn" },
+  { label: "Ask the Textbook", href: routes.learner.tutor, icon: BookOpenText, shortLabel: "Ask" },
+  { label: "Practice & Assessments", href: routes.learner.practice, icon: ClipboardCheck, shortLabel: "Practice" },
+  { label: "My Progress", href: routes.learner.progress, icon: TrendingUp, shortLabel: "Progress" },
   { label: "Saved Lessons", href: routes.learner.savedLessons, icon: Bookmark },
 ];
 
@@ -47,3 +51,8 @@ export const navigationPanels: Record<PanelVariant, { label: string; items: NavI
   learner: { label: "Learner", items: learnerNavItems },
   admin: { label: "Admin", items: adminNavItems },
 };
+
+/** The four destinations pinned to the learner's mobile tab bar (the rest live in the menu). */
+export const learnerTabItems: NavItem[] = learnerNavItems.filter((item) =>
+  [routes.learner.dashboard, routes.learner.learn, routes.learner.practice, routes.learner.progress].includes(item.href),
+);

@@ -16,6 +16,7 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
 
+from app.schemas.gamification import RewardSummary
 from app.schemas.learner import VarkPreference
 
 
@@ -156,6 +157,7 @@ class LessonSessionRead(BaseModel):
     lesson: Lesson | None
     source_references: list[SourceReference]
     failure_reason: str | None
+    completed_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -166,5 +168,15 @@ class LessonSessionSummary(BaseModel):
     topic_name: str
     status: Literal["generating", "ready", "failed"]
     prompt: str
+    lesson_title: str | None = None
+    completed_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
+
+
+class LessonCompletionResult(BaseModel):
+    lesson_session_id: uuid.UUID
+    completed_at: datetime
+    already_completed: bool
+    rewards: RewardSummary | None
+

@@ -8,6 +8,7 @@ hiding the admin page in the frontend.
 from __future__ import annotations
 
 import uuid
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile, status
 from sqlalchemy import select
@@ -18,9 +19,11 @@ from app.api.deps import get_db, require_admin
 from app.core.config import get_settings
 from app.core.exceptions import NotFoundError, ServiceUnavailableError
 from app.models.academic_document import AcademicDocument, DocumentContentType
+from app.models.learner import Learner
 from app.rag.document_loader import load_text_from_upload, validate_text
-from app.rag.embeddings import embed_chunks
+from app.rag.embeddings import embed_query
 from app.rag.ingestion import ingest_document
+from app.rag.metadata_repair import mark_metadata_reviewed, repair_document_metadata
 from app.rag.retriever import retrieve
 from app.schemas.knowledge_base import (
     DocumentRead,
@@ -137,7 +140,7 @@ def search_knowledge_base(
     settings = get_settings()
 
     try:
-        query_embedding = embed_chunks(gemini_client, [payload.query])[0]
+        query_embedding = embed_query(gemini_client, payload.query)
     except ServiceUnavailableError as exc:
         return KnowledgeBaseSearchResponse(query=payload.query, results=[], warning=str(exc))
 
@@ -158,3 +161,33 @@ def search_knowledge_base(
         for c in chunks
     ]
     return KnowledgeBaseSearchResponse(query=payload.query, results=results)
+
+
+TEXTBOOK_ROOT = Path(__file__).resolve().parents[3] / "data" / "Textbook"
+
+
+@router.post("/documents/{document_id}/repair-metadata")
+def repair_metadata_route(
+    document_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    gemini_client: GeminiClient = Depends(get_gemini_client),
+) -> dict:
+    """Retries AI metadata inference for a textbook document whose inference
+    failed. Never deletes, re-creates, or re-embeds chunks."""
+    document = db.get(AcademicDocument, document_id)
+    if document is None:
+        raise NotFoundError(f"Document {document_id} was not found")
+    return repair_document_metadata(db, document, gemini_client, TEXTBOOK_ROOT).__dict__
+
+
+@router.post("/documents/{document_id}/metadata-review")
+def review_metadata_route(
+    document_id: uuid.UUID, db: Session = Depends(get_db), admin: Learner = Depends(require_admin)
+) -> dict:
+    """An admin explicitly accepts the document's current metadata (clears review_required)."""
+    document = db.get(AcademicDocument, document_id)
+    if document is None:
+        raise NotFoundError(f"Document {document_id} was not found")
+    meta = mark_metadata_reviewed(db, document, admin.email).doc_metadata
+    return {"document_id": str(document.id), "review_required": meta["review_required"], "reviewed_at": meta["reviewed_at"]}
+

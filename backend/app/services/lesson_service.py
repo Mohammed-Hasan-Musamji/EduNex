@@ -9,17 +9,21 @@ perspective.
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.ai.gemini_client import GeminiClient
 from app.ai.lesson_generator import LessonGenerator
-from app.core.exceptions import ForbiddenError, NotFoundError, ServiceUnavailableError
+from app.core.exceptions import ForbiddenError, NotFoundError, ServiceUnavailableError, ValidationAppError
+from app.db.transaction import run_in_transaction
+from app.models.gamification import LearningEventType
 from app.models.learner import Learner, LearnerRole
 from app.models.lesson import LessonSession, LessonSessionStatus
 from app.models.topic import Topic
-from app.schemas.lesson import Lesson, LessonSessionCreate
+from app.schemas.lesson import Lesson, LessonCompletionResult, LessonSessionCreate
+from app.services.gamification_service import LESSON_COMPLETED_XP, RewardSession
 
 
 class LessonService:
@@ -32,11 +36,14 @@ class LessonService:
         if topic is None:
             raise NotFoundError(f"Topic {data.topic_id} was not found")
 
+        # An explicit per-lesson choice wins; otherwise fall back to the
+        # preferences saved on the learner's profile (empty = balanced).
+        vark = [v.value for v in data.vark_preferences] or list((learner.preferences or {}).get("vark_preferences", []))
         session = LessonSession(
             learner_id=learner.id,
             topic_id=data.topic_id,
             prompt=data.prompt,
-            vark_preferences=[v.value for v in data.vark_preferences],
+            vark_preferences=vark,
             status=LessonSessionStatus.generating,
         )
         self.db.add(session)
@@ -74,6 +81,39 @@ class LessonService:
                 self._run_generation(session, topic)
         return session
 
+    def complete_session(self, lesson_id: uuid.UUID, current: Learner) -> LessonCompletionResult:
+        return run_in_transaction(self.db, lambda: self._complete_session(lesson_id, current))
+
+    def _complete_session(self, lesson_id: uuid.UUID, current: Learner) -> LessonCompletionResult:
+        session = self.get_session(lesson_id)
+        # Rewards belong to the learner who took the lesson -- even an admin
+        # cannot complete someone else's lesson on their behalf.
+        if session.learner_id != current.id:
+            raise ForbiddenError("You can only complete your own lessons.")
+        if session.status != LessonSessionStatus.ready or not session.lesson_json:
+            raise ValidationAppError("Only a successfully generated lesson can be completed.")
+        if session.completed_at is not None:
+            return LessonCompletionResult(
+                lesson_session_id=session.id, completed_at=session.completed_at, already_completed=True, rewards=None
+            )
+
+        now = datetime.now(UTC)
+        session.completed_at = now
+        self.db.flush()
+        title = (session.lesson_json or {}).get("title") or (session.topic.name if session.topic else "a lesson")
+        rewards = RewardSession(self.db, current, now)
+        rewards.award(
+            LearningEventType.lesson_completed,
+            f"lesson:{session.id}",
+            LESSON_COMPLETED_XP,
+            title="Completed a lesson",
+            description=f"{title}" + (f" ({session.topic.name})" if session.topic else ""),
+            resource_id=session.id,
+        )
+        return LessonCompletionResult(
+            lesson_session_id=session.id, completed_at=now, already_completed=False, rewards=rewards.finish()
+        )
+
     def _run_generation(self, session: LessonSession, topic: Topic) -> None:
         try:
             lesson, source_refs = self.generator.generate(
@@ -108,6 +148,7 @@ def to_lesson_session_read(session: LessonSession) -> dict:
         "lesson": Lesson.model_validate(session.lesson_json) if session.lesson_json else None,
         "source_references": session.source_references,
         "failure_reason": session.failure_reason,
+        "completed_at": session.completed_at,
         "created_at": session.created_at,
         "updated_at": session.updated_at,
     }

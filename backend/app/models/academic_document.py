@@ -10,7 +10,7 @@ import enum
 import uuid
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import JSON, Enum, ForeignKey, String, Text, Uuid
+from sqlalchemy import JSON, Enum, ForeignKey, Integer, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -45,8 +45,16 @@ class AcademicDocument(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         Enum(DocumentContentType, name="document_content_type"), nullable=False
     )
     subject_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("subjects.id", ondelete="SET NULL"), nullable=True
+        Uuid, ForeignKey("subjects.id", ondelete="SET NULL"), nullable=True, index=True
     )
+    # Chapter-level documents map to one catalog topic (see app/rag/catalog.py).
+    topic_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("topics.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    # SHA-256 of the source bytes (PDF) or text; lets re-ingestion skip
+    # unchanged documents and detect edited ones.
+    content_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    page_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     ingestion_status: Mapped[IngestionStatus] = mapped_column(
         Enum(IngestionStatus, name="ingestion_status"), nullable=False, default=IngestionStatus.uploaded
     )

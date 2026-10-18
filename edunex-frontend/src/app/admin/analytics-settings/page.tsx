@@ -1,13 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Activity, CheckCircle2, Clock, Smile, Target } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { MetricCard } from "@/components/admin/MetricCard";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { Card, CardTitle, CardDescription } from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
-import { demoAnalytics } from "@/lib/demo-data";
 import { healthApi } from "@/lib/api-client";
 
 type Tab = "analytics" | "settings";
@@ -60,19 +57,20 @@ export default function AnalyticsSettingsPage() {
 
       {tab === "analytics" ? (
         <div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <MetricCard label="Active users (7d)" value={String(demoAnalytics.activeUsers7d)} icon={Activity} />
-            <MetricCard label="Avg. session" value={`${demoAnalytics.avgSessionMinutes} min`} icon={Clock} />
-            <MetricCard label="Lesson completion" value={`${demoAnalytics.lessonCompletionRate}%`} icon={CheckCircle2} />
-            <MetricCard label="Avg. assessment score" value={`${demoAnalytics.avgAssessmentScore}%`} icon={Target} />
-            <MetricCard label="Positive feedback" value={`${demoAnalytics.feedbackPositiveRate}%`} icon={Smile} />
-          </div>
+          <Card>
+            <CardTitle>Usage analytics</CardTitle>
+            <CardDescription>
+              Not available yet — there is no backend aggregation endpoint for active users, session length, or
+              completion/feedback rates. This section will populate once that endpoint exists; it does not show
+              placeholder numbers in the meantime.
+            </CardDescription>
+          </Card>
 
           <Card className="mt-4">
             <CardTitle>Retrieval & generation quality</CardTitle>
             <CardDescription>
-              Not available yet — these indicators depend on the pgvector retrieval and Gemini generation endpoints,
-              which are not connected to this backend.
+              Not available yet — these indicators depend on a retrieval/generation quality-metrics endpoint that
+              does not exist on the backend yet.
             </CardDescription>
           </Card>
         </div>

@@ -107,8 +107,6 @@ export interface Lesson {
   blocks: LessonBlock[];
   sourceReferences: SourceReference[];
   nextActivity: NextActivity | null;
-  /** True only for the clearly-labeled local demo preview shown when Gemini is unavailable. */
-  isDemo?: boolean;
 }
 
 export interface ChatMessage {

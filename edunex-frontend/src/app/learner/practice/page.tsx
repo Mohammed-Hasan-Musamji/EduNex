@@ -1,5 +1,6 @@
 "use client";
 
+<<<<<<< HEAD
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -28,21 +29,50 @@ import { playClickSound, playHoverTick, playSuccessChime } from "@/lib/audio-eff
 import type { AssessmentResult, QuestionAnswer, Assessment } from "@/types/assessment";
 import type { Topic } from "@/types/content";
 import { cn } from "@/lib/utils";
+=======
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { ArrowRight, RotateCcw, TrendingDown, TrendingUp } from "lucide-react";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { AssessmentQuestion } from "@/components/learner/AssessmentQuestion";
+import { useGamification } from "@/components/gamification/GamificationProvider";
+import { Button, buttonClasses } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { ProgressRing } from "@/components/ui/Progress";
+import { Select } from "@/components/ui/Select";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { assessmentsApi, subjectsApi } from "@/lib/api-client";
+import { buildLearnUrl, routes } from "@/lib/routes";
+import type { AssessmentQuestion as Question, QuestionAnswer } from "@/types/assessment";
+import type { Subject } from "@/types/content";
+import type { PracticeRoundResult } from "@/types/engagement";
+>>>>>>> b5abe61 (Implemented 3)
 
-export default function PracticePage() {
-  const { learner } = useLearner();
-  const { showToast } = useToast();
+const ROUND_SIZE = 5;
 
-  const [realTopics, setRealTopics] = useState<Topic[] | null>(null);
-  const [selectedTopicId, setSelectedTopicId] = useState<string>("");
-  const [realAssessment, setRealAssessment] = useState<Assessment | null>(null);
-  const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
+function newRequestId() {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID().replace(/-/g, "")
+    : `${Date.now()}${Math.random().toString(36).slice(2)}`;
+}
+
+function PracticeRound() {
+  const params = useSearchParams();
+  const { celebrate } = useGamification();
+  const [subjects, setSubjects] = useState<Subject[] | null>(null);
+  const [topicId, setTopicId] = useState("");
+  const [questions, setQuestions] = useState<Question[] | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<string, QuestionAnswer>>({});
-  const [result, setResult] = useState<AssessmentResult | null>(null);
-  const [validationError, setValidationError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [result, setResult] = useState<PracticeRoundResult | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const requestId = useRef<string | null>(null);
 
   useEffect(() => {
+<<<<<<< HEAD
     void listAllRealTopics().then((topics) => {
       setRealTopics(topics);
       if (topics[0]) setSelectedTopicId(topics[0].id);
@@ -144,19 +174,94 @@ export default function PracticePage() {
 
   const handleRetry = () => {
     playClickSound();
+=======
+    void Promise.all([subjectsApi.list()]).then(async ([list]) => {
+      if (!list.ok) {
+        setLoadError(list.error.message);
+        setSubjects([]);
+        return;
+      }
+      const detailed = await Promise.all(list.data.map((s) => subjectsApi.getWithTopics(s.id)));
+      const full = detailed.flatMap((r) => (r.ok ? [r.data] : []));
+      setSubjects(full);
+      const wanted = params.get("topic");
+      const all = full.flatMap((s) => s.topics);
+      setTopicId(all.find((t) => t.id === wanted)?.id ?? all[0]?.id ?? "");
+    });
+  }, [params]);
+
+  const loadQuestions = (id: string) => {
+    setQuestions(null);
+>>>>>>> b5abe61 (Implemented 3)
     setAnswers({});
     setResult(null);
-    setValidationError(null);
+    setSubmitError(null);
+    requestId.current = null;
+    void assessmentsApi.listQuestions(id, ROUND_SIZE).then((res) => {
+      if (res.ok) setQuestions(res.data);
+      else {
+        setLoadError(res.error.message);
+        setQuestions([]);
+      }
+    });
   };
 
-  const topicOptions = [
-    ...(realTopics ?? []).map((t) => ({ id: t.id, label: t.name, isDemo: false })),
-    ...demoAssessments
-      .filter((a) => !(realTopics ?? []).some((t) => t.id === a.topicId))
-      .map((a) => ({ id: a.topicId, label: `${a.topicName} (demo)`, isDemo: true })),
-  ];
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (topicId) loadQuestions(topicId);
+  }, [topicId]);
+
+  const topicName = useMemo(
+    () => subjects?.flatMap((s) => s.topics).find((t) => t.id === topicId)?.name ?? "",
+    [subjects, topicId],
+  );
+  const resultsById = useMemo(() => new Map(result?.results.map((r) => [r.questionId, r]) ?? []), [result]);
+  const answeredCount = questions?.filter((q) => {
+    const a = answers[q.id];
+    return q.type === "multiple_choice" ? a?.selectedOptionIndex !== undefined : a?.selectedBoolean !== undefined;
+  }).length ?? 0;
+
+  const submit = async () => {
+    if (!questions || submitting) return;
+    if (answeredCount < questions.length) {
+      setSubmitError("Answer every question before submitting.");
+      return;
+    }
+    // Same id for retries of this exact submission, so a network retry can't record the round twice.
+    requestId.current ??= newRequestId();
+    setSubmitting(true);
+    setSubmitError(null);
+    const res = await assessmentsApi.submitRound({
+      topicId,
+      clientRequestId: requestId.current,
+      answers: questions.map((q) => ({
+        questionId: q.id,
+        submittedAnswer: q.type === "multiple_choice" ? answers[q.id].selectedOptionIndex! : answers[q.id].selectedBoolean!,
+      })),
+    });
+    setSubmitting(false);
+    if (!res.ok) {
+      setSubmitError(res.error.message);
+      return;
+    }
+    setResult(res.data);
+    const improved = res.data.previousScore !== null && res.data.score > res.data.previousScore;
+    celebrate(res.data.rewards, {
+      title: improved ? "You improved!" : "Round recorded",
+      message: improved
+        ? `${Math.round(res.data.previousScore!)}% → ${Math.round(res.data.score)}% on ${res.data.topicName}.`
+        : `${res.data.correct}/${res.data.total} correct on ${res.data.topicName}.`,
+    });
+  };
+
+  if (subjects === null) return <Skeleton className="h-72" />;
+  const topics = subjects.flatMap((s) => s.topics);
+  if (topics.length === 0) {
+    return <EmptyState title="No topics to practice yet" description={loadError ?? "Topics appear once subjects have content."} />;
+  }
 
   return (
+<<<<<<< HEAD
     <div className="space-y-6 animate-in fade-in duration-500">
       {/* Header Banner */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-3xl border border-border/80 bg-card p-6 sm:p-8 shadow-xs backdrop-blur-xl transition-all">
@@ -357,6 +462,132 @@ export default function PracticePage() {
           mastery and guide future lesson adaptation.
         </p>
       </SpotlightCard>
+=======
+    <div className="flex flex-col gap-5">
+      <div className="max-w-sm">
+        <Select label="Topic" value={topicId} onChange={(e) => setTopicId(e.target.value)}>
+          {subjects.map((s) => (
+            <optgroup key={s.id} label={s.name}>
+              {s.topics.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </Select>
+      </div>
+
+      {result && (
+        <section className="flex animate-enter flex-col gap-4 rounded-[var(--radius-lg)] border border-border bg-card p-5 shadow-sm sm:flex-row sm:items-center">
+          <ProgressRing value={result.score} tone={result.score >= 80 ? "success" : "accent"} size={96} label="Round score">
+            <span className="text-xl font-semibold text-text">{Math.round(result.score)}%</span>
+          </ProgressRing>
+          <div className="flex-1">
+            <p className="font-serif text-lg font-semibold text-text">
+              {result.correct}/{result.total} correct on {result.topicName}
+            </p>
+            {result.previousScore !== null && (
+              <p className="mt-1 inline-flex items-center gap-1 text-sm text-text-muted">
+                {result.score >= result.previousScore ? (
+                  <TrendingUp className="size-4 text-success" aria-hidden="true" />
+                ) : (
+                  <TrendingDown className="size-4 text-text-subtle" aria-hidden="true" />
+                )}
+                Previous round: {Math.round(result.previousScore)}%
+              </p>
+            )}
+            <p className="mt-1 text-sm text-text-muted">
+              {result.score < 60
+                ? "This topic needs another look. A lesson will help before the next round."
+                : result.score < 100
+                  ? "Solid progress. Review the explanations below, then try another round."
+                  : "Every answer correct. Try a harder topic next."}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={() => loadQuestions(topicId)}>
+              <RotateCcw className="size-4" aria-hidden="true" /> New round
+            </Button>
+            {result.score < 60 && (
+              <Link href={buildLearnUrl({ topicId })} className={buttonClasses("primary")}>
+                Learn {topicName} <ArrowRight className="size-4" aria-hidden="true" />
+              </Link>
+            )}
+          </div>
+        </section>
+      )}
+
+      {questions === null ? (
+        <div className="flex flex-col gap-3">
+          <Skeleton className="h-32" />
+          <Skeleton className="h-32" />
+        </div>
+      ) : questions.length === 0 ? (
+        <EmptyState
+          title={`No questions for ${topicName} yet`}
+          description="Questions for textbook topics are generated from the indexed chapters and appear here once available."
+          action={
+            <Link href={routes.learner.tutor} className={buttonClasses("secondary")}>
+              Ask the textbook instead
+            </Link>
+          }
+        />
+      ) : (
+        <>
+          <div className="stagger flex flex-col gap-3">
+            {questions.map((q, index) => {
+              const r = resultsById.get(q.id);
+              return (
+                <div key={q.id} style={{ "--i": index } as React.CSSProperties}>
+                  <AssessmentQuestion
+                    question={q}
+                    index={index}
+                    selectedOptionIndex={answers[q.id]?.selectedOptionIndex}
+                    selectedBoolean={answers[q.id]?.selectedBoolean}
+                    result={r ? { questionId: q.id, correct: r.isCorrect, explanation: r.explanation } : undefined}
+                    onSelectOption={(i) => {
+                      requestId.current = null;
+                      setAnswers((a) => ({ ...a, [q.id]: { questionId: q.id, selectedOptionIndex: i } }));
+                    }}
+                    onSelectBoolean={(v) => {
+                      requestId.current = null;
+                      setAnswers((a) => ({ ...a, [q.id]: { questionId: q.id, selectedBoolean: v } }));
+                    }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+          {!result && (
+            <div className="sticky bottom-20 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-border bg-card/95 p-3 shadow-md backdrop-blur lg:bottom-4">
+              <span className="text-sm text-text-muted">
+                {answeredCount}/{questions.length} answered · graded on the server
+              </span>
+              <Button onClick={() => void submit()} isLoading={submitting}>
+                Submit answers
+              </Button>
+            </div>
+          )}
+          {submitError && <ErrorState title="Couldn't submit" description={submitError} onRetry={() => void submit()} />}
+        </>
+      )}
+    </div>
+  );
+}
+
+export default function PracticePage() {
+  return (
+    <div>
+      <PageHeader
+        eyebrow="Practice"
+        title="Practice & Assessments"
+        description="Short rounds of up to five questions, preferring ones you haven't answered yet. Your browser never decides whether an answer is right: every answer is graded on the server."
+      />
+      <Suspense fallback={<Skeleton className="h-72" />}>
+        <PracticeRound />
+      </Suspense>
+>>>>>>> b5abe61 (Implemented 3)
     </div>
   );
 }

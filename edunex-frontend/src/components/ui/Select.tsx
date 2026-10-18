@@ -26,8 +26,13 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             id={selectId}
             aria-invalid={Boolean(error)}
             className={cn(
+<<<<<<< HEAD
               "h-10 w-full appearance-none rounded-md border border-border bg-card pl-3 pr-9 text-sm text-text transition-colors",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+=======
+              "h-10 w-full appearance-none rounded-[var(--radius-md)] border border-border bg-card pl-3 pr-9 text-sm text-text shadow-xs hover:border-border-strong",
+              "focus-visible:border-primary focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-primary/15",
+>>>>>>> b5abe61 (Implemented 3)
               error && "border-error",
               className,
             )}

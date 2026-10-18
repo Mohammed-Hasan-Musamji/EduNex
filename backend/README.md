@@ -121,41 +121,15 @@ timestamps are timezone-aware.
 
 ## 4. API endpoints
 
-All new endpoints are under `/api/v1`. The pre-existing `GET /` and
-`GET /health` routes are untouched.
+63 operations under `/api/v1` (plus the original `GET /` and `GET /health`). The full table, with the
+auth requirement of every route and request/response examples, is in
+**[../docs/API.md](../docs/API.md)**; the live OpenAPI console is at **http://localhost:8000/docs**.
 
-| Method | Path | Purpose |
-|---|---|---|
-| GET | `/` | Preserved app welcome message |
-| GET | `/health` | Preserved basic liveness check |
-| GET | `/api/v1/health/ready` | DB connectivity + Gemini-configured status (no paid call) |
-| POST | `/api/v1/learners` | Create a learner |
-| GET | `/api/v1/learners/{id}` | Fetch a learner |
-| PATCH | `/api/v1/learners/{id}` | Update display name / preferences |
-| GET/PUT | `/api/v1/learners/{id}/preferences` | Read/replace VARK-style preferences |
-| GET | `/api/v1/subjects` | List active subjects |
-| GET | `/api/v1/subjects/{id}` | Subject detail incl. topics |
-| GET | `/api/v1/subjects/{id}/topics` | Topics for a subject |
-| GET | `/api/v1/topics/{id}` | Topic detail |
-| POST | `/api/v1/lessons` | Create a lesson session (retrieval + Gemini generation) |
-| GET | `/api/v1/lessons/{id}` | Fetch a lesson session |
-| POST | `/api/v1/lessons/{id}/resume` | Re-fetch, retrying generation if it previously failed |
-| GET | `/api/v1/learners/{id}/lessons` | List a learner's lesson sessions |
-| POST/GET/DELETE | `/api/v1/learners/{id}/saved-lessons[/{lesson_id}]` | Save/list/remove bookmarks |
-| GET | `/api/v1/topics/{id}/questions` | Assessment questions (no correct answers/explanations) |
-| POST | `/api/v1/assessments/attempts` | Submit an answer; evaluated server-side |
-| GET | `/api/v1/learners/{id}/assessments` | A learner's attempt history |
-| GET | `/api/v1/learners/{id}/progress` | All progress records |
-| GET | `/api/v1/learners/{id}/progress/{topic_id}` | Progress for one topic (safe zeroed default if none yet) |
-| GET | `/api/v1/learners/{id}/recommendations` | Next-activity recommendations |
-| POST | `/api/v1/admin/knowledge-base/documents` | Ingest raw text/Markdown (JSON body) |
-| POST | `/api/v1/admin/knowledge-base/documents/upload` | Ingest a `.txt`/`.md` file upload |
-| GET | `/api/v1/admin/knowledge-base/documents[/{id}]` | List/fetch documents + ingestion status |
-| POST | `/api/v1/admin/knowledge-base/documents/{id}/ingest` | (Re)chunk + embed + index |
-| POST | `/api/v1/admin/knowledge-base/search` | Test semantic retrieval |
-
-Interactive docs: **http://localhost:8000/docs** (Swagger) once the server is
-running.
+Main groups: auth · learner profile & preferences · catalog (subjects, topics, indexed textbook
+chapters) · lessons (generate, resume, complete) · **textbook tutor (`POST /tutor/ask`)** ·
+assessments (questions, practice rounds) · adaptive diagnostics · progress, recommendations,
+**skill profile**, **learning plan** · gamification, analytics, timeline · notifications ·
+**VARK-style questionnaire** · admin (users, subjects, knowledge base, question generation/review).
 
 ### Example: create a lesson session
 
@@ -199,10 +173,11 @@ with HTTP `503` — never a fabricated lesson.
 ```json
 {"error": {"code": "VALIDATION_ERROR", "message": "The request could not be validated", "details": [...] }}
 ```
-Status codes used: `200/201/204` success, `404` missing resource, `409`
-conflict (duplicate save), `422` validation, `503` dependency unavailable.
-`401`/`403`/`429` are not emitted because there is no auth system and no
-rate limiting implemented yet (see section 19).
+Status codes used: `200/201/204` success, `401` unauthenticated, `403`
+forbidden (wrong owner / non-admin), `404` missing resource, `409` conflict
+(duplicate save/email), `422` validation, `503` dependency unavailable.
+`429` is not emitted — there is no rate limiting implemented yet (see
+section 19).
 
 ---
 
@@ -304,23 +279,17 @@ reads or needs them, and the Gemini key must never be placed in a
 ## 11. Database migrations
 
 ```bash
-# apply all migrations (safe, never drops/resets existing data)
-alembic upgrade head
-
-# create a new migration after changing models
+alembic upgrade head      # 0001 -> 0004; additive, never drops existing data
+alembic current           # expect 0004_rag_supabase_vectors (head)
 alembic revision --autogenerate -m "describe the change"
-
-# roll back the most recent migration
-alembic downgrade -1
 ```
 
-The initial migration (`alembic/versions/0001_initial_schema.py`) was
-hand-written against the SQLAlchemy models (autogenerate needs a live DB
-connection, which was unavailable here) and verified by applying/rolling it
-back against SQLite. **Run and verify it against your real PostgreSQL
-instance before trusting it in production.**
-
----
+All four migrations were applied, downgraded, and re-applied against **PostgreSQL 16 + pgvector
+0.6.2** (local, via `pgserver`) and against SQLite. Applying 0001 on PostgreSQL exposed a duplicate
+`difficulty_level` enum bug, which is now fixed. 0004 adds the HNSW index, the
+`match_academic_chunks()` SQL function, and row-level security on every table. Supabase-specific
+setup: **[../docs/SUPABASE_VECTOR_SETUP.md](../docs/SUPABASE_VECTOR_SETUP.md)**. Don't run downgrades
+against a database with real learner data without a backup.
 
 ## 12. Seed data
 
@@ -348,146 +317,90 @@ uvicorn main:app --reload --port 8000
 
 ## 14. Gemini configuration and failure behavior
 
-- Uses the current **`google-genai`** SDK (the unified Google Gen AI SDK;
-  the older `google-generativeai` package is in maintenance mode).
-- `GeminiClient` ([app/ai/gemini_client.py](app/ai/gemini_client.py)) is the
-  single place that talks to the SDK. If `GEMINI_API_KEY` is unset, every
-  method raises a `ServiceUnavailableError`, which routes return as HTTP
-  `503` — no fabricated lesson or embedding is ever returned.
-- Lesson generation retries once on malformed/non-JSON model output (see
-  `MAX_GENERATION_ATTEMPTS` in `app/ai/lesson_generator.py`), then fails with
-  `503`.
-- A per-call timeout (`GEMINI_TIMEOUT_SECONDS`) is enforced via the SDK's
-  `HttpOptions`.
-- `source_references` in a generated lesson are **always** the chunks that
-  were actually retrieved — the model's own citation claims are discarded
-  and overwritten server-side, so it cannot invent sources.
-- `GET /api/v1/health/ready` reports whether Gemini is *configured*; it
-  never makes a paid API call.
+- `app/ai/gemini_client.py` is the only module that talks to the `google-genai` SDK.
+- Failures are **classified** (`invalid_api_key`, `permission_denied`, `model_not_found`,
+  `invalid_request`, `rate_limited`, `server_error`, `timeout`, `network`, …) and returned as HTTP 503
+  with that category in the message. Only retryable categories are retried (up to 4 attempts,
+  exponential backoff with jitter); a bad key fails immediately.
+- Embeddings are sent in **batches of ≤ 100** (the API's per-request limit, and the cause of the
+  original bulk-ingestion `ClientError`), with `RETRIEVAL_DOCUMENT` / `RETRIEVAL_QUERY` task types.
+  Every vector is checked for dimension; nothing is ever substituted for a failed embedding.
+- Check a key and models without spending much quota: `python -m scripts.diagnose_gemini`.
+- `GET /api/v1/health/ready` reports whether a key is *configured*; it never makes a paid call, so it
+  can't tell you the key is valid. Use the diagnostic for that.
 
----
+## 15. Textbook ingestion (PDF → pgvector)
 
-## 15. How academic documents are ingested
-
-```
-raw text/Markdown (JSON body or .txt/.md upload, decoded in memory)
-  -> validated (non-empty, size-limited; no file-path handling at all)
-  -> chunked (app/rag/chunker.py: configurable size + overlap, word-boundary aware)
-  -> embedded (Gemini embedding model, dimension-validated)
-  -> stored as AcademicContentChunk rows (chunk_text + embedding, pgvector column)
+```bash
+python -m scripts.ingest_textbooks --dry-run                    # parse only (no DB, no Gemini)
+python -m scripts.ingest_textbooks --only "Data structures/Linked"   # one PDF first
+python -m scripts.ingest_textbooks                               # all, resumable and idempotent
+python -m scripts.ingest_textbooks --retry-failed
 ```
 
-Only plain text and Markdown are supported. **PDF, image, and
-scanned-document ingestion are not implemented.** Re-running ingest on the
-same document replaces its chunks rather than duplicating them.
+PyMuPDF extracts text page by page → blank pages are skipped and image-only pages are flagged as
+needing OCR (no OCR engine is installed) → metadata comes from the PDF itself first (title, outline),
+then Gemini, then the filename, with provenance recorded per field → paragraph-aware chunks keep
+headings with their text and carry real PDF page ranges and section titles → embeddings → stored in
+one commit, or the document is marked `failed` with the reason. Unchanged files (same SHA-256) are
+skipped on re-runs. Each textbook folder becomes a Subject and each chapter PDF becomes a Topic, so
+retrieval, lessons, and generated questions stay within the right subject. Run reports go to
+`data/ingestion_reports/` (git-ignored). Actual counts: **[../docs/RAG_VALIDATION_REPORT.md](../docs/RAG_VALIDATION_REPORT.md)**.
 
-## 16. How vector retrieval works
+Grounded questions for those chapters: `python -m scripts.generate_questions --all`. Each item is
+written from one excerpt, validated, de-duplicated, stored as `unreviewed` with its source chunk, and
+reviewable at `/api/v1/admin/questions`.
 
-On PostgreSQL, `app/rag/retriever.py` issues a real pgvector query using
-SQLAlchemy's `cosine_distance()` (the `<=>` operator), ordered and limited to
-`RAG_TOP_K`, filtered by `RAG_MIN_SIMILARITY`. An IVFFlat index is created in
-the initial migration for approximate nearest-neighbor performance.
+## 16. Retrieval and grounded answers
 
-## 17. SQLite fallback (tests/dev only — read this before trusting retrieval)
+`app/rag/retriever.py` calls `match_academic_chunks()` on PostgreSQL (HNSW, cosine, only `indexed`
+documents, optional subject/document filters, `RAG_MIN_SIMILARITY`, ≤ 20 rows). On SQLite (tests only)
+it runs the same filters with brute-force cosine similarity in Python.
 
-PostgreSQL/pgvector were unavailable in the environment this was built in.
-To make the automated test suite possible without them:
+`POST /api/v1/tutor/ask` (`app/ai/tutor.py`) answers only from retrieved excerpts. It doesn't call the
+model when nothing relevant is found, drops any citation that doesn't point at a supplied excerpt,
+withholds answers the model marks unsupported, and returns database metadata (subject, chapter,
+section, PDF pages) for every cited source. VARK preferences change presentation instructions only;
+the evidence and citations are identical for every learner.
 
-- `AcademicContentChunk.embedding` uses `pgvector.sqlalchemy.Vector` on
-  PostgreSQL, with `.with_variant(JSON(), "sqlite")` as a fallback type.
-- `app/rag/retriever.py` detects the SQLAlchemy dialect at query time: on
-  PostgreSQL it uses the real pgvector query above; on SQLite it loads every
-  embedded chunk and computes cosine similarity in pure Python, then sorts
-  and truncates to top-k.
+## 17. Assessment, skill profile, VARK
 
-This fallback is real cosine-similarity math (not keyword matching), so it
-is useful for correctness testing of the surrounding pipeline, but it is
-**not** pgvector's indexed ANN search and has not been used to validate
-pgvector itself. Do not deploy against SQLite.
-
----
+- **Adaptive diagnostic** (`app/services/diagnostic_service.py`): one server-chosen question at a time,
+  a one-step difficulty staircase, and a stored summary with per-topic status, limited-evidence
+  flags, prerequisite gaps, and a recommended starting difficulty.
+- **Skill profile** (`app/services/skill_service.py`): measured accuracy vs. a Beta-posterior estimate
+  with uncertainty and an evidence level; snapshots after every completed round; misconceptions only
+  from repeated misses on the same question.
+- **VARK-style questionnaire** (`app/services/vark_service.py`): EduNex's own 12-item instrument (not
+  the official VARK). Mixed preferences are allowed; scores, version, and source are stored. It changes
+  presentation only, and the learner can override it.
+- **Gamification** (`app/services/gamification_service.py`): server-side XP rules, levels, streaks by
+  calendar day in `ACTIVITY_TIMEZONE`, and data-driven achievements awarded once.
 
 ## 18. Running tests
 
 ```bash
-source .venv/bin/activate   # Windows: .venv\Scripts\Activate.ps1
-pytest -v
+.venv/bin/python -m pytest            # SQLite + mocked Gemini; no key needed
+.venv/bin/ruff check .
+# Real PostgreSQL + pgvector (an EMPTY, disposable database; runs all migrations up and down):
+EDUNEX_TEST_PG_URL=postgresql+psycopg://user:pass@host:5432/empty_db .venv/bin/python -m pytest tests/test_postgres_integration.py
 ```
 
-Actual result in this environment:
-
-```
-40 passed in ~0.7s
-```
-
-The suite uses an isolated SQLite file (`test_edunex.db`, created and deleted
-automatically) and **never calls the real Gemini API** — `GeminiClient`
-methods are monkeypatched per test. No `GEMINI_API_KEY` is required to run
-the suite.
-
-Lint:
-```bash
-pip install -r requirements-dev.txt
-ruff check app main.py scripts tests alembic
-```
-Actual result: `All checks passed!`
-
----
+Most recent result in this environment: see the final report in `docs/RAG_VALIDATION_REPORT.md`
+§4–5. The PostgreSQL tests are skipped unless `EDUNEX_TEST_PG_URL` is set.
 
 ## 19. Known limitations
 
-- **No authentication or authorization.** `learner_id` is a client-supplied
-  identifier, not a verified identity — anyone who knows or guesses a
-  learner_id can read/modify that learner's data. All `/api/v1/learners/...`
-  and `/api/v1/admin/...` routes are **development-only**. Do not expose
-  this backend publicly without adding real auth first.
-- **No rate limiting.** `429` responses are not emitted by anything in this
-  codebase.
-- **Real PostgreSQL/pgvector were never reachable** in the environment this
-  was developed in (no package manager/Docker access). Migrations and
-  retrieval logic were verified against SQLite + a brute-force similarity
-  fallback only. Apply and smoke-test the migration against real Postgres
-  before trusting it.
-- **No real Gemini calls were made.** All lesson-generation and embedding
-  behavior was verified with a mocked `GeminiClient`. Once a real
-  `GEMINI_API_KEY` is configured, re-verify: (a) the model name in
-  `GEMINI_MODEL` is actually available to your key, (b) JSON-mode output
-  actually conforms to the lesson schema on the first or second attempt in
-  practice, (c) the embedding model/dimension actually match
-  `GEMINI_EMBEDDING_DIMENSIONS`.
-- **Only PDF-free ingestion is implemented** (plain text / Markdown). No
-  PDF, image, or OCR extraction.
-- **Only Data Structures → Linked Lists is seeded and validated.** The
-  architecture supports more subjects/topics, but none are implemented.
-- **Only multiple-choice and true/false questions are evaluated.**
-  Short-answer grading is not implemented (the spec allows it only with a
-  reliable evaluation method, which was out of scope for this MVP).
-- **Mastery/recommendation logic is a simple heuristic** (accuracy ratio +
-  recency rules documented in `app/services/recommendation_service.py`), not
-  a validated psychometric model.
-- **No background job queue.** Ingestion and lesson generation run
-  synchronously within the request; a large document or slow Gemini call
-  will hold the request open for its duration.
-
-## 20. Implemented vs. planned
-
-**Implemented and tested (SQLite + mocked Gemini):** learner profiles and
-preferences; subject/topic listing with idempotent seeding; lesson session
-create/get/list/resume; strict discriminated-union lesson schema with 8
-block types including the `linked_list` interactive visualization; Gemini
-client with graceful missing-key/timeout/malformed-output handling; full RAG
-pipeline (load → chunk → embed → store → retrieve) with source references
-that can never be invented; server-side assessment evaluation; progress
-tracking; baseline recommendations; saved lessons with duplicate prevention;
-knowledge-base admin CRUD + ingest + search; consistent JSON error envelope
-and status codes; 40 passing automated tests; Alembic migration (verified on
-SQLite only, see section 17).
-
-**Documented but not implemented:** authentication/authorization, rate
-limiting, PDF/image ingestion, short-answer grading, background job
-processing, production CORS lockdown beyond the configured origin list.
-
-**Not verified in this environment (needs your own machine with
-Postgres/Docker access):** real pgvector query performance/correctness, a
-real Gemini API call end-to-end, the Alembic migration against a live
-PostgreSQL server.
+- **Real Gemini calls haven't succeeded in this checkout**: its `GEMINI_API_KEY` is rejected
+  (`invalid_api_key`). Textbook embeddings, AI metadata inference, question generation, and live tutor
+  answers are verified only with a deterministic fake.
+- **Supabase itself hasn't been connected yet** (no credentials were available). The same migrations
+  and SQL were verified on local PostgreSQL + pgvector.
+- No OCR engine is installed. In the current textbooks no page needs OCR; blank pages are skipped.
+- `gemini-3.8-flash` (used on another machine) hasn't been verified to exist. The default stays
+  `gemini-2.5-flash`; override it with `GEMINI_MODEL` after running the diagnostic.
+- The tutor rate limit (20/min/learner) is in-process; use a shared store if you run several workers.
+- Ingestion and generation run synchronously (CLI/admin request), with no job queue.
+- Short-answer grading is not implemented (multiple choice and true/false only).
+- Audio uses the browser's built-in speech synthesis: voices vary by device, there is no
+  server-generated audio file, and speech-to-text is not implemented.

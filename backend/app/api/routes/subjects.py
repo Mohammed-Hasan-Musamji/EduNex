@@ -7,15 +7,17 @@ rather than through a dedicated service layer.
 import uuid
 
 from fastapi import APIRouter, Depends, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, require_admin
 from app.core.exceptions import ConflictError, NotFoundError
+from app.models.academic_document import AcademicDocument, IngestionStatus
+from app.models.content_chunk import AcademicContentChunk
 from app.models.learner import Learner
 from app.models.subject import Subject
 from app.models.topic import Topic
-from app.schemas.subject import SubjectCreate, SubjectDetail, SubjectRead, SubjectUpdate, TopicRead
+from app.schemas.subject import SubjectCreate, SubjectDetail, SubjectDocument, SubjectRead, SubjectUpdate, TopicRead
 from app.utils.slugify import slugify
 
 router = APIRouter(tags=["subjects"])
@@ -43,6 +45,27 @@ def list_subject_topics(subject_id: uuid.UUID, db: Session = Depends(get_db)) ->
     if subject is None:
         raise NotFoundError(f"Subject {subject_id} was not found")
     return list(db.scalars(select(Topic).where(Topic.subject_id == subject_id).order_by(Topic.name)))
+
+
+@router.get("/subjects/{subject_id}/documents", response_model=list[SubjectDocument])
+def list_subject_documents(subject_id: uuid.UUID, db: Session = Depends(get_db)) -> list[SubjectDocument]:
+    """Indexed textbook chapters for a subject (only what retrieval can actually search)."""
+    if db.get(Subject, subject_id) is None:
+        raise NotFoundError(f"Subject {subject_id} was not found")
+    rows = db.execute(
+        select(AcademicDocument, func.count(AcademicContentChunk.id))
+        .outerjoin(AcademicContentChunk, AcademicContentChunk.document_id == AcademicDocument.id)
+        .where(AcademicDocument.subject_id == subject_id, AcademicDocument.ingestion_status == IngestionStatus.indexed)
+        .group_by(AcademicDocument.id)
+        .order_by(AcademicDocument.title)
+    ).all()
+    return [
+        SubjectDocument(
+            id=doc.id, title=doc.title, topic_id=doc.topic_id,
+            chapter_number=(doc.doc_metadata or {}).get("chapter_number"), page_count=doc.page_count, chunk_count=count,
+        )
+        for doc, count in rows
+    ]
 
 
 @router.get("/topics/{topic_id}", response_model=TopicRead)

@@ -63,6 +63,11 @@ class UnauthorizedError(AppError):
     code = "UNAUTHORIZED"
 
 
+class ForbiddenError(AppError):
+    status_code = status.HTTP_403_FORBIDDEN
+    code = "FORBIDDEN"
+
+
 class RateLimitedError(AppError):
     status_code = status.HTTP_429_TOO_MANY_REQUESTS
     code = "RATE_LIMITED"
@@ -70,6 +75,19 @@ class RateLimitedError(AppError):
 
 def _error_body(code: str, message: str, details: list[Any] | None = None) -> dict:
     return {"error": {"code": code, "message": message, "details": details or []}}
+
+
+def _serializable_errors(errors: Any) -> list[dict[str, Any]]:
+    """Pydantic puts the raised exception object in `ctx`; stringify it so a
+    custom validator's message reaches the client instead of crashing the
+    handler with a non-JSON-serializable value."""
+    cleaned = []
+    for error in errors:
+        error = dict(error)
+        if isinstance(error.get("ctx"), dict):
+            error["ctx"] = {key: str(value) for key, value in error["ctx"].items()}
+        cleaned.append(error)
+    return cleaned
 
 
 def register_exception_handlers(app: FastAPI) -> None:
@@ -81,7 +99,7 @@ def register_exception_handlers(app: FastAPI) -> None:
     async def handle_validation_error(_: Request, exc: RequestValidationError) -> JSONResponse:
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            content=_error_body("VALIDATION_ERROR", "The request could not be validated", exc.errors()),
+            content=_error_body("VALIDATION_ERROR", "The request could not be validated", _serializable_errors(exc.errors())),
         )
 
     @app.exception_handler(StarletteHTTPException)

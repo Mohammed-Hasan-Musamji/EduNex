@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const PROMPT_MAX_LENGTH = 1000;
 
+<<<<<<< HEAD
 export const loginSchema = z.object({
   email: z.string().trim().email("Please enter a valid email address"),
   password: z.string().min(1, "Password is required"),
@@ -27,14 +28,20 @@ export type RegisterInput = z.infer<typeof registerSchema>;
  * Creating a profile via name or legacy flow.
  */
 export const createProfileSchema = z.object({
+=======
+export const registerSchema = z.object({
+>>>>>>> b5abe61 (Implemented 3)
   displayName: z.string().trim().min(1, "Enter a display name").max(120, "Keep it under 120 characters"),
+  email: z.string().trim().min(1, "Enter your email").email("That doesn't look like a valid email"),
+  password: z.string().min(8, "Password must be at least 8 characters").max(128, "Keep it under 128 characters"),
 });
-export type CreateProfileInput = z.infer<typeof createProfileSchema>;
+export type RegisterInput = z.infer<typeof registerSchema>;
 
-export const learnerIdSchema = z.object({
-  learnerId: z.string().trim().uuid("That doesn't look like a valid learner ID"),
+export const loginSchema = z.object({
+  email: z.string().trim().min(1, "Enter your email").email("That doesn't look like a valid email"),
+  password: z.string().min(1, "Enter your password").max(128, "Keep it under 128 characters"),
 });
-export type LearnerIdInput = z.infer<typeof learnerIdSchema>;
+export type LoginInput = z.infer<typeof loginSchema>;
 
 export const varkPreferenceSchema = z.enum(["visual", "auditory", "read_write", "kinesthetic"]);
 
@@ -73,7 +80,6 @@ export const assessmentAnswerSchema = z.object({
   questionId: z.string(),
   selectedOptionIndex: z.number().int().min(0).optional(),
   selectedBoolean: z.boolean().optional(),
-  textAnswer: z.string().trim().min(1).optional(),
 });
 
 // --- Lesson block runtime validation (defense-in-depth: re-checked here even
@@ -130,5 +136,4 @@ export const lessonSchema = z.object({
     .object({ type: z.enum(["practice", "review", "lesson"]), label: z.string(), topicId: z.string().nullable().optional() })
     .nullable()
     .optional(),
-  isDemo: z.boolean().optional(),
 });

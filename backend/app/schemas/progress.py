@@ -12,6 +12,8 @@ from typing import Literal
 
 from pydantic import BaseModel
 
+from app.models.topic import DifficultyLevel
+
 
 class ProgressRead(BaseModel):
     learner_id: uuid.UUID
@@ -30,3 +32,8 @@ class Recommendation(BaseModel):
     recommendation_type: Literal["beginner_practice", "review", "practice_harder", "continue"]
     label: str
     rationale: str
+    # Difficulty tier of the recommended topic, and what to do on it.
+    difficulty: DifficultyLevel | None = None
+    suggested_activity: Literal["lesson", "practice"] | None = None
+    # Lower runs first: review (0) < start (1) < continue (2) < advance (3).
+    priority: int = 2

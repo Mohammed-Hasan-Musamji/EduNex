@@ -1,17 +1,23 @@
 "use client";
 
 import type { LucideIcon } from "lucide-react";
+<<<<<<< HEAD
 import { SpotlightCard } from "@/components/ui/SpotlightCard";
 import { cn } from "@/lib/utils";
+=======
+import { StatTile } from "@/components/ui/StatTile";
+>>>>>>> b5abe61 (Implemented 3)
 
 interface MetricCardProps {
   label: string;
-  value: string;
+  /** null while loading or when the metric is unavailable. */
+  value: string | null;
   icon: LucideIcon;
   hint?: string;
   className?: string;
 }
 
+<<<<<<< HEAD
 export function MetricCard({ label, value, icon: Icon, hint, className = "" }: MetricCardProps) {
   return (
     <SpotlightCard className={cn("p-5 flex-row items-center gap-4", className)}>
@@ -25,4 +31,8 @@ export function MetricCard({ label, value, icon: Icon, hint, className = "" }: M
       </div>
     </SpotlightCard>
   );
+=======
+export function MetricCard({ label, value, icon, hint }: MetricCardProps) {
+  return <StatTile label={label} value={value} icon={icon} hint={hint} emptyHint="Loading…" tone="primary" />;
+>>>>>>> b5abe61 (Implemented 3)
 }

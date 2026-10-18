@@ -40,3 +40,15 @@ class SubjectRead(ORMModel):
 
 class SubjectDetail(SubjectRead):
     topics: list[TopicRead] = []
+
+
+class SubjectDocument(BaseModel):
+    """An indexed textbook chapter a learner can scope questions to."""
+
+    id: uuid.UUID
+    title: str
+    topic_id: uuid.UUID | None
+    chapter_number: str | None
+    page_count: int | None
+    chunk_count: int
+

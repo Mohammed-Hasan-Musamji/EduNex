@@ -1,35 +1,52 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
-import { Button } from "@/components/ui/Button";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { DataTable, type DataTableColumn } from "@/components/admin/DataTable";
-import { StatusBadge } from "@/components/admin/StatusBadge";
-import { demoAdminUsers } from "@/lib/demo-data";
 import { adminUsersApi } from "@/lib/api-client";
-import { isBackendUnavailable } from "@/types/api";
 import { formatDate } from "@/lib/formatters";
 import { useToast } from "@/hooks/use-toast";
-import type { AccountStatus, AdminRole, AdminUserRecord } from "@/types/learner";
+import { useLearner } from "@/hooks/use-learner";
+import type { AdminUserRecord, UserRole } from "@/types/learner";
 
-const PAGE_SIZE = 3;
+const PAGE_SIZE = 10;
 
 export default function AdminUsersPage() {
   const { showToast } = useToast();
-  const [users, setUsers] = useState<AdminUserRecord[]>(demoAdminUsers);
+  const { learner: currentAdmin } = useLearner();
+  const [users, setUsers] = useState<AdminUserRecord[] | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState<"all" | AdminRole>("all");
+  const [roleFilter, setRoleFilter] = useState<"all" | UserRole>("all");
   const [page, setPage] = useState(1);
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
-  const [confirmingStatusChangeId, setConfirmingStatusChangeId] = useState<string | null>(null);
+
+  const loadUsers = async () => {
+    setLoadError(null);
+    const result = await adminUsersApi.list();
+    if (!result.ok) {
+      setLoadError(result.error.message);
+      setUsers([]);
+      return;
+    }
+    setUsers(result.data);
+  };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadUsers();
+  }, []);
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return users.filter((user) => {
-      const matchesQuery = !query || user.name.toLowerCase().includes(query) || user.email.toLowerCase().includes(query);
+    return (users ?? []).filter((user) => {
+      const matchesQuery =
+        !query || user.displayName.toLowerCase().includes(query) || user.email.toLowerCase().includes(query);
       const matchesRole = roleFilter === "all" || user.role === roleFilter;
       return matchesQuery && matchesRole;
     });
@@ -38,94 +55,47 @@ export default function AdminUsersPage() {
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageRows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const applyUserPatch = async (
-    user: AdminUserRecord,
-    patch: { role?: AdminRole; status?: AccountStatus },
-  ) => {
+  const changeRole = async (user: AdminUserRecord, role: UserRole) => {
     if (pendingUserId) return;
     setPendingUserId(user.id);
-    const result = await adminUsersApi.updateUser(user.id, patch);
-    if (!result.ok && !isBackendUnavailable(result.error)) {
-      showToast({ variant: "error", title: "Couldn't update user", description: result.error.message });
-      setPendingUserId(null);
+    const result = await adminUsersApi.updateRole(user.id, role);
+    setPendingUserId(null);
+    if (!result.ok) {
+      showToast({ variant: "error", title: "Couldn't update role", description: result.error.message });
       return;
     }
-    setUsers((current) => current.map((u) => (u.id === user.id ? { ...u, ...patch } : u)));
-    showToast({
-      variant: "success",
-      title: "User updated",
-      description:
-        result.ok === false
-          ? "Applied locally — this is not yet persisted by the backend."
-          : `${user.name}'s account was updated.`,
-    });
-    setPendingUserId(null);
-    setConfirmingStatusChangeId(null);
+    setUsers((current) => (current ?? []).map((u) => (u.id === user.id ? result.data : u)));
+    showToast({ variant: "success", title: "Role updated", description: `${user.displayName} is now ${role}.` });
   };
 
   const columns: DataTableColumn<AdminUserRecord>[] = [
-    { key: "name", header: "Name", render: (user) => <span className="font-medium">{user.name}</span> },
+    { key: "displayName", header: "Name", render: (user) => <span className="font-medium">{user.displayName}</span> },
     { key: "email", header: "Email", render: (user) => user.email },
     {
       key: "role",
       header: "Role",
-      render: (user) => (
-        <Select
-          value={user.role}
-          disabled={pendingUserId === user.id}
-          onChange={(event) => void applyUserPatch(user, { role: event.target.value as AdminRole })}
-          className="h-9 w-32"
-          aria-label={`Change role for ${user.name}`}
-        >
-          <option value="learner">Learner</option>
-          <option value="admin">Admin</option>
-        </Select>
-      ),
-    },
-    {
-      key: "status",
-      header: "Status",
-      render: (user) => <StatusBadge label={user.status} tone={user.status === "active" ? "success" : "neutral"} />,
-    },
-    { key: "joinedAt", header: "Joined", render: (user) => formatDate(user.joinedAt) },
-    {
-      key: "actions",
-      header: "Actions",
       render: (user) =>
-        confirmingStatusChangeId === user.id ? (
-          <div className="flex items-center gap-2 text-xs">
-            <span className="text-text-muted">
-              {user.status === "active" ? "Deactivate" : "Activate"} this account?
-            </span>
-            <button
-              type="button"
-              className="font-medium text-primary underline"
-              onClick={() =>
-                void applyUserPatch(user, { status: user.status === "active" ? "inactive" : "active" })
-              }
-            >
-              Confirm
-            </button>
-            <button type="button" className="font-medium underline" onClick={() => setConfirmingStatusChangeId(null)}>
-              Cancel
-            </button>
-          </div>
+        user.id === currentAdmin?.id ? (
+          <span className="text-sm text-text-muted">{user.role} (you)</span>
         ) : (
-          <Button
-            variant="secondary"
-            size="sm"
+          <Select
+            value={user.role}
             disabled={pendingUserId === user.id}
-            onClick={() => setConfirmingStatusChangeId(user.id)}
+            onChange={(event) => void changeRole(user, event.target.value as UserRole)}
+            className="h-9 w-32"
+            aria-label={`Change role for ${user.displayName}`}
           >
-            {user.status === "active" ? "Deactivate" : "Activate"}
-          </Button>
+            <option value="learner">Learner</option>
+            <option value="admin">Admin</option>
+          </Select>
         ),
     },
+    { key: "createdAt", header: "Joined", render: (user) => formatDate(user.createdAt) },
   ];
 
   return (
     <div>
-      <PageHeader title="User Management" description="Search, filter, and manage learner and admin accounts." />
+      <PageHeader title="User Management" description="Search, filter, and manage real learner and admin accounts." />
 
       <div className="flex flex-wrap items-end gap-3">
         <div className="relative w-64">
@@ -145,7 +115,7 @@ export default function AdminUsersPage() {
           label="Role"
           value={roleFilter}
           onChange={(event) => {
-            setRoleFilter(event.target.value as "all" | AdminRole);
+            setRoleFilter(event.target.value as "all" | UserRole);
             setPage(1);
           }}
           className="w-36"
@@ -157,19 +127,26 @@ export default function AdminUsersPage() {
       </div>
 
       <div className="mt-4">
-        <DataTable
-          columns={columns}
-          rows={pageRows}
-          getRowId={(user) => user.id}
-          emptyMessage="No users match your filters."
-          page={page}
-          pageCount={pageCount}
-          onPageChange={setPage}
-        />
+        {users === null ? (
+          <LoadingState label="Loading users…" />
+        ) : loadError ? (
+          <ErrorState description={loadError} onRetry={() => void loadUsers()} />
+        ) : (
+          <DataTable
+            columns={columns}
+            rows={pageRows}
+            getRowId={(user) => user.id}
+            emptyMessage="No users match your filters."
+            page={page}
+            pageCount={pageCount}
+            onPageChange={setPage}
+          />
+        )}
       </div>
 
       <p className="mt-3 text-xs text-text-muted">
-        Frontend role checks are not a security boundary — the backend must independently enforce authorization.
+        Frontend role checks are not a security boundary — every admin route independently re-verifies the
+        caller&apos;s role on the server.
       </p>
     </div>
   );

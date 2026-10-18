@@ -3,16 +3,14 @@
 import uuid
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, verify_owner_or_admin
 from app.core.exceptions import NotFoundError
-from app.models.subject import Subject
 from app.models.topic import Topic
 from app.schemas.progress import ProgressRead, Recommendation
 from app.services.progress_service import ProgressService
-from app.services.recommendation_service import recommend_for_topic
+from app.services.recommendation_service import recommendations_for
 
 router = APIRouter(prefix="/learners/{learner_id}", tags=["progress"], dependencies=[Depends(verify_owner_or_admin)])
 
@@ -61,18 +59,4 @@ def get_progress(learner_id: uuid.UUID, topic_id: uuid.UUID, db: Session = Depen
 
 @router.get("/recommendations", response_model=list[Recommendation])
 def get_recommendations(learner_id: uuid.UUID, db: Session = Depends(get_db)) -> list[Recommendation]:
-    progress_service = ProgressService(db)
-    records = progress_service.list_for_learner(learner_id)
-
-    if records:
-        recommendations = []
-        for progress in records:
-            topic = db.get(Topic, progress.topic_id)
-            if topic is None:
-                continue
-            recommendations.append(recommend_for_topic(db, learner_id, topic, progress))
-        return recommendations
-
-    # No progress anywhere yet: recommend starting each active topic.
-    topics = list(db.scalars(select(Topic).join(Subject).where(Subject.is_active.is_(True))))
-    return [recommend_for_topic(db, learner_id, topic, None) for topic in topics]
+    return recommendations_for(db, learner_id)

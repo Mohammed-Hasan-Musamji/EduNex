@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+<<<<<<< HEAD
 import { Activity, Database, FileStack, Users, RefreshCw, ShieldCheck } from "lucide-react";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { StatusBadge } from "@/components/admin/StatusBadge";
@@ -13,6 +14,15 @@ import { demoAdminStats, demoPlatformActivity } from "@/lib/demo-data";
 import { adminKnowledgeBaseApi, healthApi } from "@/lib/api-client";
 import { playClickSound, playHoverTick, playSuccessChime } from "@/lib/audio-effects";
 import { cn } from "@/lib/utils";
+=======
+import { Database, FileStack, Users } from "lucide-react";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { MetricCard } from "@/components/admin/MetricCard";
+import { StatusBadge } from "@/components/admin/StatusBadge";
+import { Card, CardTitle } from "@/components/ui/Card";
+import { adminNavItems } from "@/config/navigation";
+import { adminKnowledgeBaseApi, adminUsersApi, healthApi } from "@/lib/api-client";
+>>>>>>> b5abe61 (Implemented 3)
 
 const healthTone = { healthy: "success", degraded: "warning", down: "error" } as const;
 
@@ -25,6 +35,7 @@ interface HealthRow {
 export default function AdminDashboardPage() {
   const [documentStats, setDocumentStats] = useState<{ total: number; indexed: number } | null>(null);
   const [serviceHealth, setServiceHealth] = useState<HealthRow[] | null>(null);
+<<<<<<< HEAD
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const loadData = async () => {
@@ -63,6 +74,42 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     void loadData();
+=======
+  const [userCount, setUserCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    void adminKnowledgeBaseApi.listDocuments().then((res) => {
+      if (res.ok) {
+        setDocumentStats({ total: res.data.length, indexed: res.data.filter((d) => d.ingestionStatus === "indexed").length });
+      }
+    });
+
+    void adminUsersApi.list().then((res) => {
+      if (res.ok) setUserCount(res.data.length);
+    });
+
+    void healthApi.readiness().then((res) => {
+      if (res.ok) {
+        setServiceHealth([
+          {
+            name: "FastAPI backend",
+            status: "healthy",
+            detail: "/api/v1/health/ready responding",
+          },
+          {
+            name: "PostgreSQL",
+            status: res.data.dependencies.database.ok ? "healthy" : "down",
+            detail: res.data.dependencies.database.detail,
+          },
+          {
+            name: "Gemini",
+            status: res.data.dependencies.gemini.configured ? "healthy" : "down",
+            detail: res.data.dependencies.gemini.detail,
+          },
+        ]);
+      }
+    });
+>>>>>>> b5abe61 (Implemented 3)
   }, []);
 
   const handleRefresh = async () => {
@@ -73,6 +120,7 @@ export default function AdminDashboardPage() {
     playSuccessChime();
   };
 
+<<<<<<< HEAD
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       {/* Header Banner */}
@@ -121,9 +169,14 @@ export default function AdminDashboardPage() {
           value={documentStats ? String(documentStats.indexed) : "…"}
           icon={Database}
         />
+=======
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <MetricCard label="Total users" value={userCount !== null ? String(userCount) : null} icon={Users} />
+        <MetricCard label="Documents indexed" value={documentStats ? String(documentStats.indexed) : null} icon={Database} />
+>>>>>>> b5abe61 (Implemented 3)
         <MetricCard
           label="Total documents"
-          value={documentStats ? String(documentStats.total) : "…"}
+          value={documentStats ? String(documentStats.total) : null}
           icon={FileStack}
           hint={documentStats ? `${documentStats.total - documentStats.indexed} pending ingestion` : undefined}
         />
@@ -164,6 +217,7 @@ export default function AdminDashboardPage() {
           )}
         </SpotlightCard>
 
+<<<<<<< HEAD
         {/* Platform Activity */}
         <SpotlightCard className="p-6">
           <div className="mb-4 flex items-center justify-between">
@@ -187,6 +241,16 @@ export default function AdminDashboardPage() {
             ))}
           </ul>
         </SpotlightCard>
+=======
+        <Card>
+          <div className="mb-3 flex items-center justify-between">
+            <CardTitle>Platform activity</CardTitle>
+          </div>
+          <p className="text-sm text-text-muted">
+            Not available yet — there is no backend activity-log endpoint to report real platform events from.
+          </p>
+        </Card>
+>>>>>>> b5abe61 (Implemented 3)
       </div>
 
       {/* Quick Links */}

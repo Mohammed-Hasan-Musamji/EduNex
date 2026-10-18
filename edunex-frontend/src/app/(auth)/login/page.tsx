@@ -1,5 +1,6 @@
 "use client";
 
+<<<<<<< HEAD
 import { Suspense, useState, useId, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -30,7 +31,17 @@ import {
 } from "lucide-react";
 import { loginSchema, type LoginInput } from "@/lib/schemas";
 import { authApi } from "@/lib/api-client";
+=======
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
+import { loginSchema, type LoginInput } from "@/lib/schemas";
+>>>>>>> b5abe61 (Implemented 3)
 import { useLearner } from "@/hooks/use-learner";
+import { useToast } from "@/hooks/use-toast";
 import { routes } from "@/lib/routes";
 import { NexiMascot, type MascotState } from "@/components/auth/NexiMascot";
 import {
@@ -149,6 +160,7 @@ function fireCelebration() {
 
 function LoginFormContent() {
   const router = useRouter();
+<<<<<<< HEAD
   const searchParams = useSearchParams();
   const requestedRole = searchParams.get("role") as ActiveRole | null;
 
@@ -243,6 +255,25 @@ function LoginFormContent() {
         role,
       });
     }
+=======
+  const { login } = useLearner();
+  const { showToast } = useToast();
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginInput>({ resolver: zodResolver(loginSchema) });
+
+  const onSubmit = async (values: LoginInput) => {
+    const result = await login(values);
+    if (!result.ok) {
+      setError("password", { message: result.message });
+      return;
+    }
+    showToast({ variant: "success", title: "Signed in", description: "Welcome back!" });
+    router.push(routes.learner.dashboard);
+>>>>>>> b5abe61 (Implemented 3)
   };
 
   const handleKeyUp = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -336,6 +367,7 @@ function LoginFormContent() {
   const CurrentTeaserIcon = TEASERS[activeTeaserIdx].icon;
 
   return (
+<<<<<<< HEAD
     <div className="flex flex-col gap-4 sm:gap-5">
       {/* Top Controls: Sound Toggle */}
       <div className="flex items-center justify-between pb-1">
@@ -924,6 +956,39 @@ function LoginFormContent() {
           )}
         </div>
       </div>
+=======
+    <div>
+      <h1 className="font-serif text-2xl font-semibold text-text">Sign in</h1>
+      <p className="mt-1 text-sm text-text-muted">Continue your learning journey.</p>
+
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="mt-6 flex flex-col gap-4">
+        <Input
+          label="Email"
+          type="email"
+          autoComplete="email"
+          placeholder="you@example.com"
+          error={errors.email?.message}
+          {...register("email")}
+        />
+        <Input
+          label="Password"
+          type="password"
+          autoComplete="current-password"
+          error={errors.password?.message}
+          {...register("password")}
+        />
+        <Button type="submit" isLoading={isSubmitting} className="mt-2 w-full">
+          Sign in
+        </Button>
+      </form>
+
+      <p className="mt-6 text-center text-sm text-text-muted">
+        Need an account?{" "}
+        <Link href={routes.register} className="font-medium text-primary hover:underline">
+          Create one
+        </Link>
+      </p>
+>>>>>>> b5abe61 (Implemented 3)
     </div>
   );
 }

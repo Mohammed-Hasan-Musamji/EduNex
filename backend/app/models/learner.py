@@ -27,6 +27,13 @@ class LearnerRole(str, enum.Enum):
     admin = "admin"
 
 
+class OnboardingStatus(str, enum.Enum):
+    not_started = "not_started"
+    in_progress = "in_progress"
+    skipped = "skipped"
+    completed = "completed"
+
+
 class Learner(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "learners"
 
@@ -34,6 +41,12 @@ class Learner(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[LearnerRole] = mapped_column(Enum(LearnerRole, name="learner_role"), nullable=False, default=LearnerRole.learner)
+
+    # `completed` is only ever set by the server when a diagnostic finishes
+    # (app/services/diagnostic_service.py); a learner may defer with `skipped`.
+    onboarding_status: Mapped[OnboardingStatus] = mapped_column(
+        Enum(OnboardingStatus, name="onboarding_status"), nullable=False, default=OnboardingStatus.not_started
+    )
 
     # Optional VARK-style preferences and current learning goal, e.g.
     # {"vark_preferences": ["visual", "kinesthetic"], "preferred_detail": "concise",

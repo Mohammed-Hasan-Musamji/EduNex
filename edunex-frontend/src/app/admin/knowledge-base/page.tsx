@@ -11,7 +11,6 @@ import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { DataTable, type DataTableColumn } from "@/components/admin/DataTable";
 import { StatusBadge } from "@/components/admin/StatusBadge";
-import { demoSubjects } from "@/lib/demo-data";
 import { adminKnowledgeBaseApi, subjectsApi } from "@/lib/api-client";
 import { documentUploadSchema } from "@/lib/schemas";
 import { formatDate, truncate } from "@/lib/formatters";
@@ -32,7 +31,7 @@ export default function KnowledgeBasePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [documents, setDocuments] = useState<AcademicDocument[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [subjects, setSubjects] = useState<Subject[]>(demoSubjects);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
   const [subjectId, setSubjectId] = useState<string>("");
   const [title, setTitle] = useState("");
   const [uploadError, setUploadError] = useState<string | null>(null);

@@ -30,8 +30,7 @@ export type ApiResult<T> =
 
 /**
  * True when the backend simply isn't reachable, or the route itself isn't
- * implemented (an unmapped path, not a resource-not-found 404). Callers may
- * fall back to clearly-labeled demo data in this case.
+ * implemented (an unmapped path, not a resource-not-found 404).
  *
  * False for real application-level failures (a missing resource, a
  * conflict, Gemini being unconfigured/unavailable, bad payloads, auth) —

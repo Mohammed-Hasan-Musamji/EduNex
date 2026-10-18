@@ -20,7 +20,7 @@ from app.core.config import get_settings
 from app.core.exceptions import ServiceUnavailableError
 from app.core.logging import get_logger
 from app.models.topic import Topic
-from app.rag.embeddings import embed_chunks
+from app.rag.embeddings import embed_query
 from app.rag.retriever import RetrievedChunk, retrieve
 from app.schemas.lesson import Lesson, SourceReference
 
@@ -101,8 +101,11 @@ class LessonGenerator:
         settings = get_settings()
         query_text = f"{topic.name}: {learner_prompt}"
         try:
-            query_embedding = embed_chunks(self.gemini_client, [query_text])[0]
+            query_embedding = embed_query(self.gemini_client, query_text)
         except ServiceUnavailableError:
             logger.warning("Embedding the learner prompt failed; generating without retrieved context.")
             return []
-        return retrieve(db, query_embedding, top_k=settings.rag_top_k, min_similarity=settings.rag_min_similarity)
+        # Stay within the topic's subject so a lesson never cites another subject's textbook.
+        return retrieve(
+            db, query_embedding, top_k=settings.rag_top_k, min_similarity=settings.rag_min_similarity, subject_id=topic.subject_id
+        )

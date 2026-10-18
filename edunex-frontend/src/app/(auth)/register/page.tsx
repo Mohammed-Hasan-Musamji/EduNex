@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+<<<<<<< HEAD
 import confetti from "canvas-confetti";
 import {
   GraduationCap,
@@ -23,6 +24,11 @@ import {
 } from "lucide-react";
 import { registerSchema, type RegisterInput } from "@/lib/schemas";
 import { authApi } from "@/lib/api-client";
+=======
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
+import { registerSchema, type RegisterInput } from "@/lib/schemas";
+>>>>>>> b5abe61 (Implemented 3)
 import { useLearner } from "@/hooks/use-learner";
 import { useToast } from "@/hooks/use-toast";
 import { routes } from "@/lib/routes";
@@ -88,7 +94,11 @@ function fireCelebration() {
 
 export default function RegisterPage() {
   const router = useRouter();
+<<<<<<< HEAD
   const { learner, setAuthenticatedUser } = useLearner();
+=======
+  const { register: registerLearner } = useLearner();
+>>>>>>> b5abe61 (Implemented 3)
   const { showToast } = useToast();
 
   const [showPassword, setShowPassword] = useState(false);
@@ -109,6 +119,7 @@ export default function RegisterPage() {
     watch,
     resetField,
     formState: { errors, isSubmitting },
+<<<<<<< HEAD
   } = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -539,6 +550,60 @@ export default function RegisterPage() {
           </Link>
         </p>
       </div>
+=======
+  } = useForm<RegisterInput>({ resolver: zodResolver(registerSchema) });
+
+  const onSubmit = async (values: RegisterInput) => {
+    const result = await registerLearner(values);
+    if (!result.ok) {
+      setError("email", { message: result.message });
+      return;
+    }
+    showToast({ variant: "success", title: "Account created", description: `Welcome to EduNex, ${values.displayName}!` });
+    router.push(routes.learner.onboarding);
+  };
+
+  return (
+    <div>
+      <h1 className="font-serif text-2xl font-semibold text-text">Create your account</h1>
+      <p className="mt-1 text-sm text-text-muted">Start turning learning gaps into personalized growth.</p>
+
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="mt-6 flex flex-col gap-4">
+        <Input
+          label="Display name"
+          autoComplete="name"
+          placeholder="e.g. Ada"
+          error={errors.displayName?.message}
+          {...register("displayName")}
+        />
+        <Input
+          label="Email"
+          type="email"
+          autoComplete="email"
+          placeholder="you@example.com"
+          error={errors.email?.message}
+          {...register("email")}
+        />
+        <Input
+          label="Password"
+          type="password"
+          autoComplete="new-password"
+          placeholder="At least 8 characters"
+          error={errors.password?.message}
+          {...register("password")}
+        />
+        <Button type="submit" isLoading={isSubmitting} className="mt-2 w-full">
+          Create account
+        </Button>
+      </form>
+
+      <p className="mt-6 text-center text-sm text-text-muted">
+        Already have an account?{" "}
+        <Link href={routes.login} className="font-medium text-primary hover:underline">
+          Sign in
+        </Link>
+      </p>
+>>>>>>> b5abe61 (Implemented 3)
     </div>
   );
 }

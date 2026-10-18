@@ -9,6 +9,10 @@ export const routes = {
     practice: "/learner/practice",
     progress: "/learner/progress",
     savedLessons: "/learner/saved-lessons",
+    onboarding: "/learner/onboarding",
+    diagnostic: "/learner/diagnostic",
+    tutor: "/learner/tutor",
+    preferences: "/learner/preferences",
   },
   admin: {
     dashboard: "/admin/dashboard",
@@ -38,4 +42,14 @@ export function buildLearnUrl(params: { topicId: string; vark?: string[] }): str
 /** Builds a URL that reopens an existing, real backend lesson session by id. */
 export function buildResumeLessonUrl(lessonSessionId: string): string {
   return `${routes.learner.learn}?session=${encodeURIComponent(lessonSessionId)}`;
+}
+
+/** Opens (resumes) a diagnostic by id. */
+export function buildDiagnosticUrl(diagnosticId: string): string {
+  return `${routes.learner.diagnostic}?id=${encodeURIComponent(diagnosticId)}`;
+}
+
+/** Practice page preselected on a topic. */
+export function buildPracticeUrl(topicId: string): string {
+  return `${routes.learner.practice}?topic=${encodeURIComponent(topicId)}`;
 }

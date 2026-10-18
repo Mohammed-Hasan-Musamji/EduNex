@@ -14,6 +14,7 @@ from app.api.deps import get_current_learner, get_db, verify_owner_or_admin
 from app.models.learner import Learner
 from app.models.lesson import LessonSession
 from app.schemas.lesson import (
+    LessonCompletionResult,
     LessonSessionCreate,
     LessonSessionRead,
     LessonSessionSummary,
@@ -30,6 +31,8 @@ def _summary(session: LessonSession) -> LessonSessionSummary:
         topic_name=session.topic.name if session.topic else "",
         status=session.status.value,
         prompt=session.prompt,
+        lesson_title=(session.lesson_json or {}).get("title"),
+        completed_at=session.completed_at,
         created_at=session.created_at,
         updated_at=session.updated_at,
     )
@@ -59,6 +62,15 @@ def resume_lesson(
 ) -> LessonSessionRead:
     session = LessonService(db).resume_session(lesson_id, current)
     return LessonSessionRead.model_validate(to_lesson_session_read(session))
+
+
+@router.post("/lessons/{lesson_id}/complete", response_model=LessonCompletionResult)
+def complete_lesson(
+    lesson_id: uuid.UUID, db: Session = Depends(get_db), current: Learner = Depends(get_current_learner)
+) -> LessonCompletionResult:
+    """Marks a generated lesson as finished by its learner and awards XP once.
+    Idempotent: repeating it returns already_completed=True with no reward."""
+    return LessonService(db).complete_session(lesson_id, current)
 
 
 @router.get("/learners/{learner_id}/lessons", response_model=list[LessonSessionSummary])

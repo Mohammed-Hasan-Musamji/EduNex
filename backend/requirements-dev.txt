@@ -1,2 +1,4 @@
 -r requirements.txt
 ruff==0.17.1
+# Optional: a throwaway local PostgreSQL + pgvector for tests/test_postgres_integration.py
+pgserver==0.1.4

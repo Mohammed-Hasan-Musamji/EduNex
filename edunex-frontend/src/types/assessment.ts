@@ -1,10 +1,5 @@
-/**
- * `multiple_choice` and `true_false` are evaluated by the real backend.
- * `short_answer` is demo-only — the backend does not implement short-answer
- * grading (see backend/README.md "Known limitations"), so any such question
- * in the UI is always clearly-labeled local demo data.
- */
-export type QuestionType = "multiple_choice" | "true_false" | "short_answer";
+/** Matches the backend's QuestionType enum — both types are graded server-side. */
+export type QuestionType = "multiple_choice" | "true_false";
 
 export interface AssessmentQuestion {
   id: string;
@@ -12,10 +7,11 @@ export interface AssessmentQuestion {
   type: QuestionType;
   prompt: string;
   options?: string[];
-  /** Demo-only: used solely by the local demo scoring adapter for topics with no backend questions. */
-  correctOptionIndex?: number;
-  correctAnswerText?: string;
-  explanation?: string;
+  difficulty?: "beginner" | "intermediate" | "advanced";
+  /** "generated" items were written by AI from a textbook passage (see sourceTitle/sourcePage). */
+  origin?: string;
+  sourceTitle?: string | null;
+  sourcePage?: number | null;
 }
 
 export interface Assessment {
@@ -23,15 +19,12 @@ export interface Assessment {
   topicId: string;
   topicName: string;
   questions: AssessmentQuestion[];
-  /** True for topics with no real backend-seeded questions (anything but Linked Lists today). */
-  isDemo: boolean;
 }
 
 export interface QuestionAnswer {
   questionId: string;
   selectedOptionIndex?: number;
   selectedBoolean?: boolean;
-  textAnswer?: string;
 }
 
 export interface QuestionResult {

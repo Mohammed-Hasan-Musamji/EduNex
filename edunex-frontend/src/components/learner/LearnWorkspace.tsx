@@ -3,19 +3,18 @@
 import { useEffect, useRef, useState } from "react";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { LearningFeed } from "./LearningFeed";
 import { LearningWhiteboard } from "./LearningWhiteboard";
 import { AIChatPanel } from "./AIChatPanel";
 import { useLearningSession } from "@/hooks/use-learning-session";
 import { useLearner } from "@/hooks/use-learner";
-import { useToast } from "@/hooks/use-toast";
-import { lessonsApi } from "@/lib/api-client";
-import { isBackendUnavailable } from "@/types/api";
-import { generateDemoLesson, demoCurrentLearning, demoNextSteps, demoStruggleAreas } from "@/lib/demo-data";
+import { lessonsApi, progressApi } from "@/lib/api-client";
 import { listAllRealTopics, findBestMatchingRealTopic } from "@/lib/real-topics";
-import { generateId, slugify } from "@/lib/utils";
+import { generateId } from "@/lib/utils";
 import type { VarkPreference } from "@/types/learner";
 import type { Topic } from "@/types/content";
+import type { CurrentLearningStatus, StruggleArea, NextStepRecommendation } from "@/types/learner";
 
 interface LearnWorkspaceProps {
   initialTopicId: string | null;
@@ -23,30 +22,25 @@ interface LearnWorkspaceProps {
   initialLessonSessionId?: string | null;
 }
 
-const SUGGESTED_PROMPTS = [
-  "Explain how a linked list works",
-  "What's the difference between a stack and a queue?",
-  "Review Newton's Laws of motion",
-  "Help me understand limits in calculus",
-];
+const SUGGESTED_PROMPTS = ["Explain how a linked list works", "Help me traverse a linked list step by step"];
 
 type View = "feed" | "whiteboard";
 
 export function LearnWorkspace({ initialTopicId, initialVarkPreferences, initialLessonSessionId }: LearnWorkspaceProps) {
-  const { session, isRestoring, startSession, setLesson, appendMessage, updateMessage, clearSession } =
-    useLearningSession();
+  const { session, isRestoring, startSession, setLesson, appendMessage, clearSession } = useLearningSession();
   const { learner } = useLearner();
-  const { showToast } = useToast();
 
   const [view, setView] = useState<View>("feed");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
-  const [offerDemoPreview, setOfferDemoPreview] = useState<{ topicId: string; topicName: string; prompt?: string } | null>(
-    null,
-  );
+  const [topicUnavailable, setTopicUnavailable] = useState<string | null>(null);
   const [realTopics, setRealTopics] = useState<Topic[]>([]);
   const [topicsLoaded, setTopicsLoaded] = useState(false);
   const hasHandledInitialTopic = useRef(false);
+
+  const [currentLearning, setCurrentLearning] = useState<CurrentLearningStatus | null>(null);
+  const [struggleAreas, setStruggleAreas] = useState<StruggleArea[]>([]);
+  const [nextSteps, setNextSteps] = useState<NextStepRecommendation[]>([]);
 
   useEffect(() => {
     void listAllRealTopics().then((topics) => {
@@ -55,83 +49,102 @@ export function LearnWorkspace({ initialTopicId, initialVarkPreferences, initial
     });
   }, []);
 
+  useEffect(() => {
+    if (!learner) return;
+
+    void lessonsApi.listForLearner(learner.id).then((res) => {
+      const mostRecent = res.ok ? res.data[0] : undefined;
+      if (mostRecent) {
+        setCurrentLearning({
+          topicId: mostRecent.topicId,
+          topicName: mostRecent.topicName,
+          objective: mostRecent.prompt,
+          status: mostRecent.status === "ready" ? "in_progress" : "not_started",
+        });
+      }
+    });
+
+    void progressApi.recommendations(learner.id).then((res) => {
+      if (!res.ok) return;
+      setStruggleAreas(
+        res.data
+          .filter((r) => r.recommendationType === "review")
+          .map((r) => ({ topicId: r.topicId, topicName: r.topicName, conceptName: r.label, reason: r.rationale })),
+      );
+      setNextSteps(
+        res.data.map((r) => ({
+          kind: r.recommendationType === "review" ? "review" : r.recommendationType === "practice_harder" ? "practice" : "lesson",
+          title: r.label,
+          description: r.rationale,
+          topicId: r.topicId,
+          href: `/learner/learn?topic=${r.topicId}`,
+        })),
+      );
+    });
+  }, [learner]);
+
   const resolveTopic = (topicId: string, fallbackName: string): { id: string; name: string; isReal: boolean } => {
     const real = realTopics.find((t) => t.id === topicId);
     if (real) return { id: real.id, name: real.name, isReal: true };
     return { id: topicId, name: fallbackName, isReal: false };
   };
 
-  const showDemoLesson = (topicId: string, topicName: string, prompt?: string) => {
-    const lesson = generateDemoLesson(topicId, topicName, prompt);
-    setLesson(lesson);
-    appendMessage({
-      id: generateId("msg"),
-      role: "assistant",
-      content: `Here's a demo preview lesson on ${lesson.topicName}. This is local demo content, not a live Gemini response.`,
-      createdAt: new Date().toISOString(),
-      status: "sent",
-    });
-    setView("whiteboard");
-    setOfferDemoPreview(null);
-  };
-
   const generateLessonFor = async (topicId: string, topicName: string, varkPreferences: VarkPreference[], prompt?: string) => {
     setIsGenerating(true);
     setGenerationError(null);
-    setOfferDemoPreview(null);
+    setTopicUnavailable(null);
 
     const resolved = resolveTopic(topicId, topicName);
 
-    if (!resolved.isReal || !learner) {
-      // No real backend-seeded content for this topic (or no learner yet) --
-      // go straight to a clearly-labeled demo preview, never pretend it's AI-generated.
-      showDemoLesson(resolved.id, resolved.name, prompt);
+    if (!resolved.isReal) {
+      setTopicUnavailable(
+        `"${resolved.name}" isn't in the real course catalog yet. Pick a topic from Explore Subjects, or ask about: ${
+          realTopics.map((t) => t.name).join(", ") || "a topic once one has been added"
+        }.`,
+      );
       setIsGenerating(false);
       return;
     }
 
     const result = await lessonsApi.create({
-      learnerId: learner.id,
       topicId: resolved.id,
       prompt: prompt && prompt.trim() ? prompt : `Explain ${resolved.name}`,
       varkPreferences,
     });
 
     if (!result.ok) {
-      if (isBackendUnavailable(result.error)) {
-        showDemoLesson(resolved.id, resolved.name, prompt);
-      } else if (result.error.kind === "service_unavailable") {
-        setGenerationError(null);
-        showToast({
-          variant: "warning",
-          title: "Lesson generation unavailable",
-          description: "We couldn't generate your lesson right now. Your existing session has been preserved.",
-        });
-        setOfferDemoPreview({ topicId: resolved.id, topicName: resolved.name, prompt });
-      } else {
-        setGenerationError(result.error.message);
-      }
+      setGenerationError(result.error.message);
       setIsGenerating(false);
       return;
     }
 
     if (result.data.status === "failed") {
-      showToast({
-        variant: "warning",
-        title: "Lesson generation unavailable",
-        description: result.data.failureReason ?? "Lesson generation failed. Your existing session has been preserved.",
-      });
-      setOfferDemoPreview({ topicId: resolved.id, topicName: resolved.name, prompt });
+      setGenerationError(result.data.failureReason ?? "Lesson generation failed. Please try again.");
       setIsGenerating(false);
       return;
     }
 
     if (result.data.lesson) {
-      setLesson(result.data.lesson, result.data.id);
+      const lesson = result.data.lesson;
+      setLesson(lesson, result.data.id);
+
+      const keyConcept = lesson.blocks.find(
+        (b): b is Extract<typeof b, { type: "key_concept" }> => b.type === "key_concept",
+      );
+      const explanation = lesson.blocks.find(
+        (b): b is Extract<typeof b, { type: "explanation" }> => b.type === "explanation",
+      );
+      const directAnswer = keyConcept?.explanation || explanation?.body;
+
+      const hasSpecificPrompt = Boolean(prompt && prompt.trim() && !prompt.startsWith("Explain "));
+      const content = hasSpecificPrompt
+        ? `${directAnswer ? directAnswer + "\n\n" : ""}I've updated the whiteboard on the left with a dedicated lesson on "${lesson.title}", including step-by-step guidance and interactive visualization.`
+        : `I've put together a lesson on ${lesson.topicName}: ${lesson.title}. It's on the whiteboard now — let's start!`;
+
       appendMessage({
         id: generateId("msg"),
         role: "assistant",
-        content: `I've put together a lesson on ${result.data.lesson.topicName}. It's on the whiteboard now — let's start!`,
+        content,
         createdAt: new Date().toISOString(),
         status: "sent",
       });
@@ -162,8 +175,8 @@ export function LearnWorkspace({ initialTopicId, initialVarkPreferences, initial
 
   useEffect(() => {
     // Wait for the real-topics list before resolving initialTopicId, so a
-    // real backend topic is never mistaken for a demo-only one just because
-    // this fetch hasn't resolved yet.
+    // real backend topic is never mistaken for an unavailable one just
+    // because this fetch hasn't resolved yet.
     if (isRestoring || !topicsLoaded || hasHandledInitialTopic.current) return;
     hasHandledInitialTopic.current = true;
 
@@ -203,34 +216,32 @@ export function LearnWorkspace({ initialTopicId, initialVarkPreferences, initial
       createdAt: new Date().toISOString(),
       status: "sent" as const,
     };
+    appendMessage(userMessage);
 
-    if (view === "whiteboard" && session?.lesson) {
-      appendMessage(userMessage);
-      const replyId = generateId("msg");
-      appendMessage({
-        id: replyId,
-        role: "assistant",
-        content: "",
-        createdAt: new Date().toISOString(),
-        status: "sending",
-      });
-      await new Promise((resolve) => setTimeout(resolve, 600));
-      updateMessage(replyId, {
-        status: "sent",
-        content:
-          "This is a demo response — live follow-up chat grounded in the current lesson isn't implemented on the backend yet.",
-      });
+    if (session) {
+      // Treat a follow-up message as a new, genuinely-generated request about
+      // the same topic -- there is no simulated/instant chat reply here.
+      await generateLessonFor(session.topicId, session.topicName, session.varkPreferences, text);
       return true;
     }
 
     const matchedReal = findBestMatchingRealTopic(realTopics, text);
-    const topicId = session?.topicId ?? matchedReal?.id ?? slugify(text);
-    const topicName = matchedReal?.name ?? text;
-    if (!session) {
-      startSession(topicId, topicName, []);
+    if (!matchedReal) {
+      appendMessage({
+        id: generateId("msg"),
+        role: "assistant",
+        content:
+          realTopics.length > 0
+            ? `I can only generate lessons for topics in the real catalog right now: ${realTopics.map((t) => t.name).join(", ")}. Try one of those, or pick a topic from Explore Subjects.`
+            : "There are no backend-seeded topics available to generate a lesson for yet.",
+        createdAt: new Date().toISOString(),
+        status: "sent",
+      });
+      return true;
     }
-    appendMessage(userMessage);
-    await generateLessonFor(topicId, topicName, session?.varkPreferences ?? [], text);
+
+    startSession(matchedReal.id, matchedReal.name, []);
+    await generateLessonFor(matchedReal.id, matchedReal.name, [], text);
     return true;
   };
 
@@ -238,7 +249,7 @@ export function LearnWorkspace({ initialTopicId, initialVarkPreferences, initial
   const handleNewTopic = () => {
     clearSession();
     setGenerationError(null);
-    setOfferDemoPreview(null);
+    setTopicUnavailable(null);
     setView("feed");
   };
 
@@ -263,28 +274,10 @@ export function LearnWorkspace({ initialTopicId, initialVarkPreferences, initial
             description={generationError}
             onRetry={() => session && void generateLessonFor(session.topicId, session.topicName, session.varkPreferences)}
           />
-        ) : offerDemoPreview ? (
-          <ErrorState
-            title="Lesson generation unavailable"
-            description="We couldn't generate your lesson right now. You can preview a clearly-labeled demo lesson instead, or try again once the AI service is available."
-            onRetry={() =>
-              void generateLessonFor(offerDemoPreview.topicId, offerDemoPreview.topicName, session?.varkPreferences ?? [], offerDemoPreview.prompt)
-            }
-          >
-            <button
-              type="button"
-              onClick={() => showDemoLesson(offerDemoPreview.topicId, offerDemoPreview.topicName, offerDemoPreview.prompt)}
-              className="mt-2 text-sm font-medium text-primary underline"
-            >
-              Preview with demo content instead
-            </button>
-          </ErrorState>
+        ) : topicUnavailable ? (
+          <EmptyState title="Topic not available yet" description={topicUnavailable} />
         ) : (
-          <LearningFeed
-            currentLearning={demoCurrentLearning}
-            struggleAreas={demoStruggleAreas}
-            nextSteps={demoNextSteps}
-          />
+          <LearningFeed currentLearning={currentLearning} struggleAreas={struggleAreas} nextSteps={nextSteps} />
         )}
       </div>
 

@@ -19,10 +19,10 @@ import { cn } from "@/lib/utils";
 interface SubjectCardProps {
   subject: Subject;
   isSelected: boolean;
-  isDemo?: boolean;
   onSelect: () => void;
 }
 
+<<<<<<< HEAD
 export function SubjectCard({ subject, isSelected, isDemo, onSelect }: SubjectCardProps) {
   const getSubjectIcon = (name: string) => {
     const lower = name.toLowerCase();
@@ -37,6 +37,9 @@ export function SubjectCard({ subject, isSelected, isDemo, onSelect }: SubjectCa
 
   const Icon = getSubjectIcon(subject.name);
 
+=======
+export function SubjectCard({ subject, isSelected, onSelect }: SubjectCardProps) {
+>>>>>>> b5abe61 (Implemented 3)
   return (
     <button
       type="button"
@@ -48,6 +51,7 @@ export function SubjectCard({ subject, isSelected, isDemo, onSelect }: SubjectCa
       aria-pressed={isSelected}
       className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-2xl"
     >
+<<<<<<< HEAD
       <SpotlightCard
         className={cn(
           "flex h-full flex-col justify-between p-6 transition-all duration-300",
@@ -106,6 +110,20 @@ export function SubjectCard({ subject, isSelected, isDemo, onSelect }: SubjectCa
           </span>
         </div>
       </SpotlightCard>
+=======
+      <div className="flex w-full items-start justify-between">
+        <span className="flex size-9 items-center justify-center rounded-md bg-secondary/15 text-secondary">
+          <BookOpen className="size-4" aria-hidden="true" />
+        </span>
+      </div>
+      <div>
+        <p className="font-serif text-base font-medium text-text">{subject.name}</p>
+        <p className="mt-1 text-sm text-text-muted">{subject.description}</p>
+      </div>
+      <p className="mt-auto text-xs font-medium text-text-muted">
+        {subject.topics.length} topic{subject.topics.length === 1 ? "" : "s"}
+      </p>
+>>>>>>> b5abe61 (Implemented 3)
     </button>
   );
 }

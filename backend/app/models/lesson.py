@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import enum
 import uuid
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import JSON, Enum, ForeignKey, Text, Uuid
@@ -49,6 +50,8 @@ class LessonSession(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     # List of {"chunk_id": ..., "document_title": ..., "excerpt": ...} actually retrieved from the KB.
     source_references: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
     failure_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Set once, by POST /lessons/{id}/complete -- generation alone is not completion.
+    completed_at: Mapped[datetime | None] = mapped_column(nullable=True)
 
     learner: Mapped[Learner] = relationship(back_populates="lesson_sessions")
     topic: Mapped[Topic] = relationship()

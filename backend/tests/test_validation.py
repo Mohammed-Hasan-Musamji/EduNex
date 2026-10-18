@@ -38,6 +38,9 @@ def test_missing_lesson_session_returns_404(client):
 
 
 def test_malformed_uuid_path_param_returns_422(client):
+    # Authenticate first -- an unauthenticated request to this path returns
+    # 401 before path-parameter validation ever runs.
+    register(client, display_name="Ada")
     response = client.get("/api/v1/learners/not-a-uuid")
     assert response.status_code == 422
 

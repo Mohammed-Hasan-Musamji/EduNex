@@ -1,5 +1,6 @@
 "use client";
 
+<<<<<<< HEAD
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
@@ -43,52 +44,65 @@ interface MasteryRow {
   topicName: string;
   masteryLevel: number;
   isDemo: boolean;
+=======
+import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { Award, BookCheck, ClipboardCheck, Clock, History, Target } from "lucide-react";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { MasteryList } from "@/components/charts/MasteryList";
+import { ScoreTrendChart } from "@/components/charts/ScoreTrendChart";
+import { AchievementGrid } from "@/components/gamification/AchievementGrid";
+import { useGamification } from "@/components/gamification/GamificationProvider";
+import { LevelCard } from "@/components/gamification/LevelCard";
+import { StreakCard } from "@/components/gamification/StreakCard";
+import { LearningPlanList } from "@/components/progress/LearningPlanList";
+import { SkillProfileList } from "@/components/progress/SkillProfileList";
+import { buttonClasses } from "@/components/ui/Button";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { PageSkeleton } from "@/components/ui/Skeleton";
+import { StatTile } from "@/components/ui/StatTile";
+import { useLearner } from "@/hooks/use-learner";
+import { learningApi, skillsApi } from "@/lib/api-client";
+import { formatRelativeTime } from "@/lib/formatters";
+import { routes } from "@/lib/routes";
+import type { LearnerAnalytics, LearningPlan, SkillProfile, TimelineEvent } from "@/types/engagement";
+
+interface Data {
+  analytics: LearnerAnalytics;
+  skills: SkillProfile;
+  plan: LearningPlan;
+  timeline: TimelineEvent[];
+>>>>>>> b5abe61 (Implemented 3)
 }
 
 export default function ProgressPage() {
   const { learner } = useLearner();
-  const [realMastery, setRealMastery] = useState<MasteryRow[] | null>(null);
-  const [realCompletions, setRealCompletions] = useState<{ topicId: string; topicName: string; completedAt: string }[]>([]);
-  const [recommendations, setRecommendations] = useState<typeof demoNextSteps | null>(null);
+  const { summary } = useGamification();
+  const [data, setData] = useState<Data | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!learner) return;
-
-    void progressApi.list(learner.id).then((res) => {
-      if (res.ok) {
-        setRealMastery(
-          res.data.map((p) => ({ topicId: p.topicId, topicName: p.topicName, masteryLevel: p.masteryEstimate, isDemo: false })),
-        );
-      } else {
-        setRealMastery([]);
-      }
-    });
-
-    void lessonsApi.listForLearner(learner.id).then((res) => {
-      if (res.ok) {
-        setRealCompletions(
-          res.data
-            .filter((s) => s.status === "ready")
-            .map((s) => ({ topicId: s.topicId, topicName: s.topicName, completedAt: s.updatedAt })),
-        );
-      }
-    });
-
-    void progressApi.recommendations(learner.id).then((res) => {
-      if (res.ok) {
-        setRecommendations(
-          res.data.map((r) => ({
-            kind: r.recommendationType === "review" ? "review" : r.recommendationType === "practice_harder" ? "practice" : "lesson",
-            title: r.label,
-            description: r.rationale,
-            topicId: r.topicId,
-            href: "/learner/practice",
-          })),
-        );
-      }
-    });
+    setError(null);
+    const [analytics, skills, plan, timeline] = await Promise.all([
+      learningApi.analytics(learner.id),
+      skillsApi.profile(learner.id),
+      skillsApi.learningPlan(learner.id),
+      learningApi.timeline(learner.id, 15),
+    ]);
+    const failed = [analytics, skills, plan, timeline].find((r) => !r.ok);
+    if (failed && !failed.ok) {
+      setError(failed.error.message);
+      return;
+    }
+    if (analytics.ok && skills.ok && plan.ok && timeline.ok) {
+      setData({ analytics: analytics.data, skills: skills.data, plan: plan.data, timeline: timeline.data });
+    }
   }, [learner]);
 
+<<<<<<< HEAD
   const realTopicIds = new Set((realMastery ?? []).map((m) => m.topicId));
   const mastery: MasteryRow[] = [
     ...(realMastery ?? []),
@@ -99,10 +113,22 @@ export default function ProgressPage() {
     ...demoLessonCompletions.filter((c) => !realTopicIds.has(c.topicId)),
   ];
   const nextSteps = recommendations ?? demoNextSteps;
+=======
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void load();
+  }, [load]);
 
-  const strengths = mastery.filter((m) => m.masteryLevel >= 70);
-  const improvementAreas = mastery.filter((m) => m.masteryLevel < 60);
+  if (error) return <ErrorState title="Couldn't load your progress" description={error} onRetry={() => void load()} />;
+  if (!data) return <PageSkeleton label="Loading your progress…" />;
+>>>>>>> b5abe61 (Implemented 3)
 
+  const { analytics, skills, plan, timeline } = data;
+  const s = analytics.summary;
+  const assessed = skills.topics.filter((t) => t.attempts > 0);
+  const hasActivity = s.questionsAnswered > 0 || s.lessonsCompleted > 0;
+
+<<<<<<< HEAD
   const averageMastery =
     mastery.length > 0
       ? Math.round(mastery.reduce((acc, curr) => acc + curr.masteryLevel, 0) / mastery.length)
@@ -450,6 +476,140 @@ export default function ProgressPage() {
           ))}
         </ul>
       </SpotlightCard>
+=======
+  return (
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        eyebrow="My progress"
+        title="How your learning is going"
+        description="Everything here is computed from your own lessons, assessments, and answers. Nothing is estimated without evidence."
+      />
+
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatTile label="Lessons completed" value={String(s.lessonsCompleted)} icon={BookCheck} tone="primary" hint={`${s.lessonsGenerated} generated`} />
+        <StatTile label="Assessments" value={String(s.assessmentsCompleted)} icon={ClipboardCheck} tone="accent" hint={`${s.questionsAnswered} questions answered`} />
+        <StatTile
+          label="Overall accuracy"
+          value={s.overallAccuracy === null ? null : `${Math.round(s.overallAccuracy)}%`}
+          icon={Target}
+          tone="gold"
+          emptyHint="Answer a question to see this"
+          hint="Across every graded answer"
+        />
+        <StatTile
+          label="Concepts mastered"
+          value={String(s.conceptsMastered)}
+          icon={Award}
+          hint={s.conceptsNeedingAttention ? `${s.conceptsNeedingAttention} need attention` : "None flagged for attention"}
+        />
+      </div>
+
+      {!hasActivity && (
+        <EmptyState
+          title="Your progress starts with one activity"
+          description="Take the skills diagnostic to find your starting point, or complete a lesson or practice round."
+          action={
+            <Link href={routes.learner.diagnostic} className={buttonClasses("primary")}>
+              Take the diagnostic
+            </Link>
+          }
+        />
+      )}
+
+      {plan.items.length > 0 && (
+        <Card>
+          <CardHeader className="mb-2">
+            <div>
+              <CardTitle>Your next best steps</CardTitle>
+              <CardDescription>Chosen from your results; formats ordered by your learning preference.</CardDescription>
+            </div>
+          </CardHeader>
+          <LearningPlanList plan={plan} />
+        </Card>
+      )}
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardTitle>Assessment scores over time</CardTitle>
+          <CardDescription className="mb-4">Each point is one completed practice round or diagnostic.</CardDescription>
+          {analytics.scoreTrend.length === 0 ? (
+            <p className="text-sm text-text-muted">No completed assessments yet.</p>
+          ) : (
+            <ScoreTrendChart
+              label="Assessment scores over time"
+              points={analytics.scoreTrend.map((p) => ({ ...p, id: p.roundId }))}
+            />
+          )}
+        </Card>
+        <div className="flex flex-col gap-4">
+          <LevelCard summary={summary} />
+          <StreakCard summary={summary} />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Card>
+          <CardTitle>Skill profile</CardTitle>
+          <CardDescription className="mb-4">{skills.method}</CardDescription>
+          {assessed.length === 0 ? (
+            <p className="text-sm text-text-muted">No topics assessed yet.</p>
+          ) : (
+            <SkillProfileList topics={assessed} />
+          )}
+          {skills.topics.length > assessed.length && (
+            <p className="mt-4 text-xs text-text-subtle">{skills.topics.length - assessed.length} more topics not assessed yet.</p>
+          )}
+        </Card>
+        <Card>
+          <CardTitle>Topic mastery</CardTitle>
+          <CardDescription className="mb-4">
+            Mastered = {analytics.masteryPolicy.masteredThreshold}%+ over at least {analytics.masteryPolicy.minAttempts} answers; needs
+            attention below {analytics.masteryPolicy.needsAttentionThreshold}%. The tick marks the mastery line.
+          </CardDescription>
+          {analytics.topicMastery.some((t) => t.attempts > 0) ? (
+            <MasteryList rows={analytics.topicMastery.filter((t) => t.attempts > 0)} threshold={analytics.masteryPolicy.masteredThreshold} />
+          ) : (
+            <p className="text-sm text-text-muted">Practice a topic to see its mastery here.</p>
+          )}
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Card>
+          <CardTitle className="flex items-center gap-2">
+            <History className="size-4 text-text-subtle" aria-hidden="true" /> Learning timeline
+          </CardTitle>
+          {timeline.length === 0 ? (
+            <p className="mt-3 text-sm text-text-muted">Completed lessons, assessments, and milestones will appear here.</p>
+          ) : (
+            <ol className="mt-4 flex flex-col">
+              {timeline.map((e) => (
+                <li key={e.id} className="relative border-l border-border pb-4 pl-5 last:pb-0">
+                  <span className="absolute -left-[5px] top-1.5 size-2.5 rounded-full bg-accent ring-4 ring-card" aria-hidden="true" />
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <p className="text-sm font-medium text-text">{e.title}</p>
+                    <span className="text-[11px] text-text-subtle">{formatRelativeTime(e.occurredAt)}</span>
+                  </div>
+                  <p className="text-xs text-text-muted">
+                    {e.description}
+                    {e.xpAwarded > 0 && <span className="font-medium text-secondary"> · +{e.xpAwarded} XP</span>}
+                  </p>
+                </li>
+              ))}
+            </ol>
+          )}
+        </Card>
+        <Card>
+          <CardTitle>Achievements</CardTitle>
+          <CardDescription className="mb-4">Each one is awarded once, for a verified activity.</CardDescription>
+          {summary ? <AchievementGrid achievements={summary.achievements} /> : <p className="text-sm text-text-muted">Loading…</p>}
+        </Card>
+      </div>
+
+      <p className="flex items-center gap-1.5 text-xs text-text-subtle">
+        <Clock className="size-3.5" aria-hidden="true" /> Time spent learning isn&apos;t tracked reliably, so it isn&apos;t shown.
+      </p>
+>>>>>>> b5abe61 (Implemented 3)
     </div>
   );
 }

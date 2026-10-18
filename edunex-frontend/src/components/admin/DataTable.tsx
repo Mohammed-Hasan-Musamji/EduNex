@@ -18,6 +18,10 @@ interface DataTableProps<T> {
   onPageChange?: (page: number) => void;
 }
 
+/**
+ * Dense table on tablet/desktop; on phones each row becomes a stacked
+ * label/value card instead of a horizontally scrolling table.
+ */
 export function DataTable<T>({
   columns,
   rows,
@@ -32,13 +36,32 @@ export function DataTable<T>({
   }
 
   return (
+<<<<<<< HEAD
     <div className="overflow-hidden rounded-lg border border-border bg-card">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[640px] text-left text-sm">
+=======
+    <div className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-card shadow-sm">
+      <ul className="divide-y divide-border md:hidden">
+        {rows.map((row) => (
+          <li key={getRowId(row)} className="flex flex-col gap-2 p-4">
+            {columns.map((column) => (
+              <div key={column.key} className="flex items-start justify-between gap-3 text-sm">
+                <span className="shrink-0 text-xs font-medium text-text-subtle">{column.header}</span>
+                <span className="min-w-0 text-right text-text">{column.render(row)}</span>
+              </div>
+            ))}
+          </li>
+        ))}
+      </ul>
+
+      <div className="hidden overflow-x-auto md:block">
+        <table className="w-full text-left text-sm">
+>>>>>>> b5abe61 (Implemented 3)
           <thead>
-            <tr className="border-b border-border bg-ivory">
+            <tr className="border-b border-border bg-surface-2/60">
               {columns.map((column) => (
-                <th key={column.key} scope="col" className="px-4 py-3 font-medium text-text-muted">
+                <th key={column.key} scope="col" className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-text-subtle">
                   {column.header}
                 </th>
               ))}
@@ -46,9 +69,9 @@ export function DataTable<T>({
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={getRowId(row)} className="border-b border-border last:border-0 hover:bg-ivory/60">
+              <tr key={getRowId(row)} className="border-b border-border transition-colors last:border-0 hover:bg-ivory">
                 {columns.map((column) => (
-                  <td key={column.key} className="px-4 py-3 text-text">
+                  <td key={column.key} className="px-4 py-3 align-middle text-text">
                     {column.render(row)}
                   </td>
                 ))}
@@ -69,7 +92,7 @@ export function DataTable<T>({
               disabled={page <= 1}
               onClick={() => onPageChange(page - 1)}
               aria-label="Previous page"
-              className="flex size-8 items-center justify-center rounded-md border border-border disabled:opacity-40"
+              className="flex size-9 items-center justify-center rounded-md border border-border hover:bg-ivory disabled:opacity-40"
             >
               <ChevronLeft className="size-4" aria-hidden="true" />
             </button>
@@ -78,7 +101,7 @@ export function DataTable<T>({
               disabled={page >= pageCount}
               onClick={() => onPageChange(page + 1)}
               aria-label="Next page"
-              className="flex size-8 items-center justify-center rounded-md border border-border disabled:opacity-40"
+              className="flex size-9 items-center justify-center rounded-md border border-border hover:bg-ivory disabled:opacity-40"
             >
               <ChevronRight className="size-4" aria-hidden="true" />
             </button>
