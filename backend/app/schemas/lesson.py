@@ -14,7 +14,7 @@ import uuid
 from datetime import datetime
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.schemas.gamification import RewardSummary
 from app.schemas.learner import VarkPreference
@@ -147,6 +147,29 @@ class LessonSessionCreate(BaseModel):
     vark_preferences: list[VarkPreference] = Field(default_factory=list)
 
 
+class LessonChatTurn(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(min_length=1, max_length=2000)
+
+
+class LessonChatRequest(BaseModel):
+    question: str = Field(min_length=1, max_length=1000)
+    history: list[LessonChatTurn] = Field(default_factory=list, max_length=12)
+
+    @field_validator("question")
+    @classmethod
+    def _strip_question(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Question must not be blank.")
+        return value
+
+
+class LessonChatResponse(BaseModel):
+    answer: str
+    lesson: Lesson | None = None
+
+
 class LessonSessionRead(BaseModel):
     id: uuid.UUID
     learner_id: uuid.UUID
@@ -179,4 +202,3 @@ class LessonCompletionResult(BaseModel):
     completed_at: datetime
     already_completed: bool
     rewards: RewardSummary | None
-

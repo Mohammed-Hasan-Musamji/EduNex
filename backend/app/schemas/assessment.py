@@ -24,11 +24,18 @@ class QuestionPublic(ORMModel):
     question_type: QuestionType
     options: list[str] | None
     difficulty: DifficultyLevel
-    # "seeded" | "generated" | "admin"; generated items cite the passage they came from.
-    origin: str = "seeded"
+    # Learner-visible questions are Gemini-generated or admin-authored, never seeded examples.
+    origin: str
     review_status: str = "approved"
     source_title: str | None = None
     source_page: int | None = None
+
+
+class PracticeQuestionGenerationResult(BaseModel):
+    topic_id: uuid.UUID
+    accepted: int
+    rejected_invalid: int
+    rejected_duplicate: int
 
 
 class AttemptCreate(BaseModel):
@@ -97,4 +104,3 @@ class PracticeRoundResult(BaseModel):
     completed_at: datetime
     replayed: bool
     rewards: RewardSummary | None
-

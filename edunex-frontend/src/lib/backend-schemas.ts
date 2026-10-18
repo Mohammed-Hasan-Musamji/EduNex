@@ -106,7 +106,7 @@ export const lessonBlockBackendSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("source_references"), sources: z.array(sourceReferenceBackendSchema) }),
 ]);
 
-const lessonBackendSchema = z.object({
+export const lessonBackendSchema = z.object({
   id: z.string(),
   topic: z.object({ id: z.string(), name: z.string() }),
   title: z.string(),
@@ -136,6 +136,11 @@ export const lessonSessionBackendSchema = z.object({
   completed_at: z.string().nullable().optional(),
   created_at: z.string(),
   updated_at: z.string(),
+});
+
+export const lessonChatBackendSchema = z.object({
+  answer: z.string(),
+  lesson: lessonBackendSchema.nullable(),
 });
 
 export const lessonSessionSummaryBackendSchema = z.object({
@@ -170,6 +175,13 @@ export const questionPublicBackendSchema = z.object({
   review_status: z.string().optional(),
   source_title: z.string().nullable().optional(),
   source_page: z.number().int().nullable().optional(),
+});
+
+export const practiceQuestionGenerationBackendSchema = z.object({
+  topic_id: z.string(),
+  accepted: z.number().int(),
+  rejected_invalid: z.number().int(),
+  rejected_duplicate: z.number().int(),
 });
 
 export const attemptReadBackendSchema = z.object({

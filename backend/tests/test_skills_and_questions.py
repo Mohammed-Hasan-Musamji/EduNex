@@ -7,10 +7,10 @@ import pytest
 from app.ai.gemini_client import get_gemini_client
 from app.db.seed import seed_initial_data
 from app.models.academic_document import AcademicDocument, DocumentContentType, IngestionStatus
-from app.models.assessment import AssessmentQuestion
+from app.models.assessment import AssessmentQuestion, QuestionType
 from app.models.content_chunk import AcademicContentChunk
 from app.models.subject import Subject
-from app.models.topic import Topic
+from app.models.topic import DifficultyLevel, Topic
 from app.services.skill_service import estimated_mastery, evidence_level, uncertainty
 from main import app as fastapi_app
 from tests.conftest import make_admin, register
@@ -29,7 +29,21 @@ def test_estimates_need_evidence_to_move():
 def seeded(db_session):
     seed_initial_data(db_session)
     topic = db_session.query(Topic).first()
-    questions = db_session.query(AssessmentQuestion).filter_by(topic_id=topic.id).all()
+    questions = [
+        AssessmentQuestion(
+            topic_id=topic.id,
+            question_text=f"Test question {index} about {topic.name}?",
+            question_type=QuestionType.multiple_choice,
+            options=["a", "b", "c", "d"],
+            correct_answer=1,
+            explanation=f"Test explanation {index}.",
+            difficulty=DifficultyLevel.beginner,
+            origin="admin",
+        )
+        for index in range(3)
+    ]
+    db_session.add_all(questions)
+    db_session.commit()
     return topic, questions
 
 
@@ -142,12 +156,47 @@ def test_generated_questions_are_validated_deduplicated_and_traceable(client, db
         assert all(q.source_chunk_id for q in stored)
 
         public = client.get(f"/api/v1/topics/{topic.id}/questions").json()
-        assert all("correct_answer" not in q for q in public)
+        assert public == []  # unreviewed admin-generation drafts aren't learner content
+        client.patch(f"/api/v1/admin/questions/{stored[1].id}/review", json={"review_status": "approved"})
+        public = client.get(f"/api/v1/topics/{topic.id}/questions").json()
+        assert len(public) == 1 and all("correct_answer" not in q for q in public)
         assert {q["source_page"] for q in public} == {2} and {q["source_title"] for q in public} == {"Strings"}
 
         rejected = stored[0]
         client.patch(f"/api/v1/admin/questions/{rejected.id}/review", json={"review_status": "rejected"})
         assert str(rejected.id) not in {q["id"] for q in client.get(f"/api/v1/topics/{topic.id}/questions").json()}
+    finally:
+        fastapi_app.dependency_overrides.pop(get_gemini_client, None)
+
+
+def test_learner_can_generate_new_approved_practice_questions_with_gemini(client, db_session, textbook_topic):
+    _, topic = textbook_topic
+    db_session.add(
+        AssessmentQuestion(
+            topic_id=topic.id,
+            question_text=GOOD["question_text"],
+            question_type=QuestionType.multiple_choice,
+            options=GOOD["options"],
+            correct_answer=GOOD["correct_answer"],
+            explanation=GOOD["explanation"],
+            difficulty=DifficultyLevel.beginner,
+            origin="seeded",
+        )
+    )
+    db_session.commit()
+    register(client)
+    gemini = FakeGemini(answer={"questions": [GOOD]})
+    fastapi_app.dependency_overrides[get_gemini_client] = lambda: gemini
+    try:
+        response = client.post(f"/api/v1/topics/{topic.id}/questions/generate")
+        assert response.status_code == 200
+        assert response.json()["accepted"] == 1
+        questions = client.get(f"/api/v1/topics/{topic.id}/questions").json()
+        assert len(questions) == 1
+        assert questions[0]["origin"] == "generated"
+        assert questions[0]["review_status"] == "approved"
+        assert "correct_answer" not in questions[0]
+        assert "immutable" in gemini.prompts[0]
     finally:
         fastapi_app.dependency_overrides.pop(get_gemini_client, None)
 

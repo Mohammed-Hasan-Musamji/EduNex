@@ -32,6 +32,7 @@ export function LearnWorkspace({ initialTopicId, initialVarkPreferences, initial
 
   const [view, setView] = useState<View>("feed");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isChatting, setIsChatting] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [topicUnavailable, setTopicUnavailable] = useState<string | null>(null);
   const [realTopics, setRealTopics] = useState<Topic[]>([]);
@@ -89,7 +90,12 @@ export function LearnWorkspace({ initialTopicId, initialVarkPreferences, initial
     return { id: topicId, name: fallbackName, isReal: false };
   };
 
-  const generateLessonFor = async (topicId: string, topicName: string, varkPreferences: VarkPreference[], prompt?: string) => {
+  const generateLessonFor = async (
+    topicId: string,
+    topicName: string,
+    varkPreferences: VarkPreference[],
+    prompt?: string,
+  ): Promise<string | null> => {
     setIsGenerating(true);
     setGenerationError(null);
     setTopicUnavailable(null);
@@ -103,7 +109,7 @@ export function LearnWorkspace({ initialTopicId, initialVarkPreferences, initial
         }.`,
       );
       setIsGenerating(false);
-      return;
+      return null;
     }
 
     const result = await lessonsApi.create({
@@ -115,42 +121,24 @@ export function LearnWorkspace({ initialTopicId, initialVarkPreferences, initial
     if (!result.ok) {
       setGenerationError(result.error.message);
       setIsGenerating(false);
-      return;
+      return null;
     }
 
     if (result.data.status === "failed") {
       setGenerationError(result.data.failureReason ?? "Lesson generation failed. Please try again.");
       setIsGenerating(false);
-      return;
+      return null;
     }
 
     if (result.data.lesson) {
       const lesson = result.data.lesson;
       setLesson(lesson, result.data.id);
-
-      const keyConcept = lesson.blocks.find(
-        (b): b is Extract<typeof b, { type: "key_concept" }> => b.type === "key_concept",
-      );
-      const explanation = lesson.blocks.find(
-        (b): b is Extract<typeof b, { type: "explanation" }> => b.type === "explanation",
-      );
-      const directAnswer = keyConcept?.explanation || explanation?.body;
-
-      const hasSpecificPrompt = Boolean(prompt && prompt.trim() && !prompt.startsWith("Explain "));
-      const content = hasSpecificPrompt
-        ? `${directAnswer ? directAnswer + "\n\n" : ""}I've updated the whiteboard on the left with a dedicated lesson on "${lesson.title}", including step-by-step guidance and interactive visualization.`
-        : `I've put together a lesson on ${lesson.topicName}: ${lesson.title}. It's on the whiteboard now — let's start!`;
-
-      appendMessage({
-        id: generateId("msg"),
-        role: "assistant",
-        content,
-        createdAt: new Date().toISOString(),
-        status: "sent",
-      });
       setView("whiteboard");
+      setIsGenerating(false);
+      return result.data.id;
     }
     setIsGenerating(false);
+    return null;
   };
 
   const resumeRealSession = async (lessonSessionId: string) => {
@@ -207,8 +195,12 @@ export function LearnWorkspace({ initialTopicId, initialVarkPreferences, initial
   }, [isRestoring, topicsLoaded]);
 
   const handleSend = async (text: string): Promise<boolean> => {
-    if (isGenerating) return false;
+    if (isGenerating || isChatting) return false;
 
+    const previousHistory = (session?.messages ?? [])
+      .filter((message) => message.status !== "failed" && message.status !== "sending")
+      .slice(-12)
+      .map(({ role, content }) => ({ role, content }));
     const userMessage = {
       id: generateId("msg"),
       role: "user" as const,
@@ -218,30 +210,46 @@ export function LearnWorkspace({ initialTopicId, initialVarkPreferences, initial
     };
     appendMessage(userMessage);
 
+    let lessonSessionId = session?.lessonSessionId ?? null;
     if (session) {
-      // Treat a follow-up message as a new, genuinely-generated request about
-      // the same topic -- there is no simulated/instant chat reply here.
-      await generateLessonFor(session.topicId, session.topicName, session.varkPreferences, text);
-      return true;
+      if (!lessonSessionId) {
+        lessonSessionId = await generateLessonFor(session.topicId, session.topicName, session.varkPreferences, text);
+      }
+    } else {
+      const matchedReal = findBestMatchingRealTopic(realTopics, text);
+      if (!matchedReal) {
+        appendMessage({
+          id: generateId("msg"),
+          role: "assistant",
+          content:
+            realTopics.length > 0
+              ? `I can only start a lesson for a topic in the course catalog: ${realTopics.map((t) => t.name).join(", ")}. Pick a topic from Explore Subjects, then ask me about it.`
+              : "There are no course topics available yet. Please ask your teacher to add a topic first.",
+          createdAt: new Date().toISOString(),
+          status: "failed",
+        });
+        return true;
+      }
+
+      startSession(matchedReal.id, matchedReal.name, []);
+      lessonSessionId = await generateLessonFor(matchedReal.id, matchedReal.name, [], text);
     }
 
-    const matchedReal = findBestMatchingRealTopic(realTopics, text);
-    if (!matchedReal) {
-      appendMessage({
-        id: generateId("msg"),
-        role: "assistant",
-        content:
-          realTopics.length > 0
-            ? `I can only generate lessons for topics in the real catalog right now: ${realTopics.map((t) => t.name).join(", ")}. Try one of those, or pick a topic from Explore Subjects.`
-            : "There are no backend-seeded topics available to generate a lesson for yet.",
-        createdAt: new Date().toISOString(),
-        status: "sent",
-      });
-      return true;
-    }
+    if (!lessonSessionId) return true;
 
-    startSession(matchedReal.id, matchedReal.name, []);
-    await generateLessonFor(matchedReal.id, matchedReal.name, [], text);
+    setIsChatting(true);
+    const response = await lessonsApi.chat(lessonSessionId, text, previousHistory);
+    setIsChatting(false);
+    if (response.ok && response.data.lesson) {
+      setLesson(response.data.lesson, lessonSessionId);
+    }
+    appendMessage({
+      id: generateId("msg"),
+      role: "assistant",
+      content: response.ok ? response.data.answer : `Gemini could not answer: ${response.error.message}`,
+      createdAt: new Date().toISOString(),
+      status: response.ok ? "sent" : "failed",
+    });
     return true;
   };
 
@@ -285,8 +293,8 @@ export function LearnWorkspace({ initialTopicId, initialVarkPreferences, initial
         <AIChatPanel
           messages={session?.messages ?? []}
           onSend={handleSend}
-          isSending={isGenerating}
-          suggestedPrompts={SUGGESTED_PROMPTS}
+          isSending={isGenerating || isChatting}
+          // suggestedPrompts={SUGGESTED_PROMPTS}
         />
       </div>
     </div>

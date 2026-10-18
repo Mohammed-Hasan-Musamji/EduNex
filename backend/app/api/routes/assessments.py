@@ -13,20 +13,25 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.ai.gemini_client import GeminiClient, get_gemini_client
 from app.api.deps import get_current_learner, get_db, get_optional_learner, verify_owner_or_admin
+from app.core.rate_limit import SlidingWindowLimiter
 from app.models.assessment import AssessmentAttempt
 from app.models.learner import Learner
 from app.schemas.assessment import (
     AttemptCreate,
     AttemptRead,
     AttemptResult,
+    PracticeQuestionGenerationResult,
     PracticeRoundCreate,
     PracticeRoundResult,
     QuestionPublic,
 )
 from app.services.assessment_service import AssessmentService
+from app.services.question_generation import generate_for_topic
 
 router = APIRouter(tags=["assessments"])
+generate_limiter = SlidingWindowLimiter(limit=5, window_seconds=60)
 
 
 @router.get("/topics/{topic_id}/questions", response_model=list[QuestionPublic])
@@ -38,6 +43,30 @@ def list_topic_questions(
 ) -> list[QuestionPublic]:
     questions = AssessmentService(db).list_questions(topic_id, learner=learner, limit=limit)
     return [QuestionPublic.model_validate(q) for q in questions]
+
+
+@router.post("/topics/{topic_id}/questions/generate", response_model=PracticeQuestionGenerationResult)
+def generate_practice_questions(
+    topic_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current: Learner = Depends(get_current_learner),
+    gemini: GeminiClient = Depends(get_gemini_client),
+) -> PracticeQuestionGenerationResult:
+    generate_limiter.check(str(current.id))
+    report = generate_for_topic(
+        db,
+        gemini,
+        topic_id,
+        excerpts=4,
+        per_excerpt=2,
+        review_status="approved",
+    )
+    return PracticeQuestionGenerationResult(
+        topic_id=report.topic_id,
+        accepted=report.accepted,
+        rejected_invalid=report.rejected_invalid,
+        rejected_duplicate=report.rejected_duplicate,
+    )
 
 
 @router.post("/assessments/attempts", response_model=AttemptResult, status_code=status.HTTP_201_CREATED)

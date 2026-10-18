@@ -3,7 +3,8 @@ import uuid
 import pytest
 
 from app.db.seed import seed_initial_data
-from app.models.assessment import AssessmentQuestion
+from app.models.assessment import AssessmentQuestion, QuestionType
+from app.models.topic import DifficultyLevel
 from tests.conftest import register
 
 
@@ -13,7 +14,23 @@ def topic_and_questions(db_session):
     from app.models.topic import Topic
 
     topic = db_session.query(Topic).first()
-    questions = db_session.query(AssessmentQuestion).filter(AssessmentQuestion.topic_id == topic.id).all()
+    questions = [
+        AssessmentQuestion(
+            topic_id=topic.id,
+            question_text=f"Test question {index} about {topic.name}?",
+            question_type=QuestionType.multiple_choice,
+            options=["a", "b", "c", "d"],
+            correct_answer=1,
+            explanation=f"Test explanation {index}.",
+            difficulty=difficulty,
+            origin="admin",
+        )
+        for index, difficulty in enumerate(
+            [DifficultyLevel.beginner, DifficultyLevel.intermediate, DifficultyLevel.beginner]
+        )
+    ]
+    db_session.add_all(questions)
+    db_session.commit()
     return topic, questions
 
 

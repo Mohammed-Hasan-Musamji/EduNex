@@ -54,4 +54,6 @@ class FakeGemini:
         self.last_model_used = "fake-model"
         if self.answer is not None:
             return json.dumps(self.answer)
+        if "general knowledge" in prompt:
+            return json.dumps({"answer": "Here is a general explanation that is not verified by the textbooks."})
         return json.dumps({"chapter_title": None, "topics": ["fixture"], "difficulty_estimate": "beginner", "review_notes": []})

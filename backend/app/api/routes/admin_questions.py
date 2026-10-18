@@ -1,8 +1,9 @@
 """Admin: generate grounded questions from textbook chunks, and review them.
 
-Generated questions start `unreviewed` and are served to learners labelled
-with their source passage; an admin can approve them or reject them
-(rejected items are never served).
+Questions generated through the admin endpoint start `unreviewed` and stay
+hidden from learners until an admin approves them. Learner-triggered practice
+and diagnostic generation uses the same grounded validator and stores
+auto-approved items with their source passage.
 """
 
 import uuid

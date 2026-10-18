@@ -50,15 +50,17 @@ class AssessmentService:
     def list_questions(
         self, topic_id: uuid.UUID, *, learner: Learner | None = None, limit: int | None = None
     ) -> list[AssessmentQuestion]:
-        """Questions for a topic, excluding ones an admin rejected. For a signed-in
-        learner, never-answered questions come first, then the least recently
-        answered -- so repeated practice rounds don't keep serving the same items."""
+        """Returns approved, non-seeded questions, preferring unseen items for learners."""
         topic = self.db.get(Topic, topic_id)
         if topic is None:
             raise NotFoundError(f"Topic {topic_id} was not found")
         stmt = (
             select(AssessmentQuestion)
-            .where(AssessmentQuestion.topic_id == topic_id, AssessmentQuestion.review_status != "rejected")
+            .where(
+                AssessmentQuestion.topic_id == topic_id,
+                AssessmentQuestion.review_status == "approved",
+                AssessmentQuestion.origin != "seeded",
+            )
             .order_by(AssessmentQuestion.created_at, AssessmentQuestion.id)
         )
         questions = list(self.db.scalars(stmt))
@@ -77,6 +79,8 @@ class AssessmentService:
         question = self.db.get(AssessmentQuestion, data.question_id)
         if question is None:
             raise NotFoundError(f"Question {data.question_id} was not found")
+        if question.origin == "seeded" or question.review_status != "approved":
+            raise NotFoundError(f"Question {data.question_id} is not available for practice")
 
         is_correct = self._evaluate(question, data.submitted_answer)
         score = 100.0 if is_correct else 0.0
@@ -120,7 +124,16 @@ class AssessmentService:
         question_ids = [a.question_id for a in data.answers]
         if len(set(question_ids)) != len(question_ids):
             raise ValidationAppError("Each question may only be answered once per round.")
-        questions = {q.id: q for q in self.db.scalars(select(AssessmentQuestion).where(AssessmentQuestion.id.in_(question_ids)))}
+        questions = {
+            q.id: q
+            for q in self.db.scalars(
+                select(AssessmentQuestion).where(
+                    AssessmentQuestion.id.in_(question_ids),
+                    AssessmentQuestion.review_status == "approved",
+                    AssessmentQuestion.origin != "seeded",
+                )
+            )
+        }
         for question_id in question_ids:
             question = questions.get(question_id)
             if question is None:

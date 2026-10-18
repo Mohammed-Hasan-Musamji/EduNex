@@ -7,10 +7,12 @@ import {
   subjectDetailBackendSchema,
   topicBackendSchema,
   lessonSessionBackendSchema,
+  lessonChatBackendSchema,
   lessonSessionSummaryBackendSchema,
   savedLessonBackendSchema,
   questionPublicBackendSchema,
   attemptResultBackendSchema,
+  practiceQuestionGenerationBackendSchema,
   attemptReadBackendSchema,
   progressBackendSchema,
   recommendationBackendSchema,
@@ -42,6 +44,7 @@ import {
   mapSubjectDetail,
   mapTopic,
   mapLessonSession,
+  mapLesson,
   mapLessonSummary,
   mapSavedLesson,
   mapQuestion,
@@ -59,6 +62,7 @@ import {
   mapNotification,
 } from "@/lib/api-mappers";
 import type { VarkPreference, LearnerPreferences, UserRole } from "@/types/learner";
+import type { ChatMessage } from "@/types/lesson";
 import { z } from "zod";
 
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
@@ -403,6 +407,22 @@ export const lessonsApi = {
     const result = await apiRequest(`/api/v1/lessons/${lessonId}`, { schema: lessonSessionBackendSchema });
     return result.ok ? { ok: true as const, data: mapLessonSession(result.data) } : result;
   },
+  chat: async (
+    lessonId: string,
+    question: string,
+    history: Pick<ChatMessage, "role" | "content">[],
+  ) => {
+    return apiRequest(`/api/v1/lessons/${lessonId}/chat`, {
+      method: "POST",
+      body: { question, history },
+      schema: lessonChatBackendSchema,
+      timeoutMs: 90_000,
+    }).then((result) =>
+      result.ok
+        ? { ok: true as const, data: { answer: result.data.answer, lesson: result.data.lesson ? mapLesson(result.data.lesson) : null } }
+        : result,
+    );
+  },
   resume: async (lessonId: string) => {
     const result = await apiRequest(`/api/v1/lessons/${lessonId}/resume`, {
       method: "POST",
@@ -463,6 +483,13 @@ export const savedLessonsApi = {
 // ---------------------------------------------------------------------------
 
 export const assessmentsApi = {
+  generateQuestions: async (topicId: string) => {
+    return apiRequest(`/api/v1/topics/${topicId}/questions/generate`, {
+      method: "POST",
+      schema: practiceQuestionGenerationBackendSchema,
+      timeoutMs: 90_000,
+    });
+  },
   listQuestions: async (topicId: string, limit?: number) => {
     const result = await apiRequest(`/api/v1/topics/${topicId}/questions`, {
       query: { limit },

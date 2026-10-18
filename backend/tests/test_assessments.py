@@ -1,6 +1,10 @@
+import uuid
+
 import pytest
 
 from app.db.seed import seed_initial_data
+from app.models.assessment import AssessmentQuestion, QuestionType
+from app.models.topic import DifficultyLevel, Topic
 from tests.conftest import register
 
 
@@ -12,6 +16,19 @@ def seeded_topic_id(db_session):
 
     subject = db_session.query(Subject).first()
     topic = db_session.query(Topic).filter(Topic.subject_id == subject.id).first()
+    db_session.add(
+        AssessmentQuestion(
+            topic_id=topic.id,
+            question_text="Which pointer references the first node?",
+            question_type=QuestionType.multiple_choice,
+            options=["tail", "head", "next", "null"],
+            correct_answer=1,
+            explanation="The head references the first node.",
+            difficulty=DifficultyLevel.beginner,
+            origin="admin",
+        )
+    )
+    db_session.commit()
     return str(topic.id)
 
 
@@ -28,6 +45,24 @@ def test_questions_never_expose_correct_answer(client, seeded_topic_id):
     for question in questions:
         assert "correct_answer" not in question
         assert "explanation" not in question
+
+
+def test_seeded_sample_questions_are_not_served(client, db_session, seeded_topic_id):
+    topic = db_session.query(Topic).filter_by(id=uuid.UUID(seeded_topic_id)).first()
+    db_session.add(
+        AssessmentQuestion(
+            topic_id=topic.id,
+            question_text="Premade question should not be served",
+            question_type=QuestionType.multiple_choice,
+            options=["a", "b", "c", "d"],
+            correct_answer=0,
+            explanation="A test fixture.",
+            difficulty=DifficultyLevel.beginner,
+            origin="seeded",
+        )
+    )
+    db_session.commit()
+    assert all(q["origin"] != "seeded" for q in client.get(f"/api/v1/topics/{seeded_topic_id}/questions").json())
 
 
 def test_correct_multiple_choice_attempt_is_evaluated_server_side(client, seeded_topic_id, learner_id):

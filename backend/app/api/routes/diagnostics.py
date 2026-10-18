@@ -9,29 +9,45 @@ import uuid
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
+from app.ai.gemini_client import GeminiClient, get_gemini_client
 from app.api.deps import get_current_learner, get_db, verify_owner_or_admin
+from app.core.rate_limit import SlidingWindowLimiter
 from app.models.learner import Learner
 from app.schemas.diagnostic import DiagnosticAnswer, DiagnosticAnswerResult, DiagnosticListItem, DiagnosticStart, DiagnosticState
 from app.services.diagnostic_service import DiagnosticService
 
 router = APIRouter(tags=["diagnostics"])
+diagnostic_generation_limiter = SlidingWindowLimiter(limit=5, window_seconds=60)
 
 
 @router.post("/diagnostics", response_model=DiagnosticState, status_code=status.HTTP_201_CREATED)
 def start_diagnostic(
-    payload: DiagnosticStart, db: Session = Depends(get_db), current: Learner = Depends(get_current_learner)
+    payload: DiagnosticStart,
+    db: Session = Depends(get_db),
+    current: Learner = Depends(get_current_learner),
+    gemini: GeminiClient = Depends(get_gemini_client),
 ) -> DiagnosticState:
     """Starts a diagnostic for a subject -- or returns the learner's
     in-progress one for that subject, so leaving and coming back resumes it."""
-    return DiagnosticService(db).start(current, payload.subject_id)
+    service = DiagnosticService(db)
+    diagnostic_generation_limiter.check(str(current.id))
+    service.generate_questions_if_empty(current, payload.subject_id, gemini)
+    return service.start(current, payload.subject_id)
 
 
 @router.get("/diagnostics/{diagnostic_id}", response_model=DiagnosticState)
 def get_diagnostic(
-    diagnostic_id: uuid.UUID, db: Session = Depends(get_db), current: Learner = Depends(get_current_learner)
+    diagnostic_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current: Learner = Depends(get_current_learner),
+    gemini: GeminiClient = Depends(get_gemini_client),
 ) -> DiagnosticState:
     service = DiagnosticService(db)
-    return service.state(service.get_owned(diagnostic_id, current))
+    round_ = service.get_owned(diagnostic_id, current)
+    if round_.status.value == "in_progress" and round_.learner_id == current.id and round_.subject_id:
+        service.generate_questions_if_empty(current, round_.subject_id, gemini)
+        return service.start(current, round_.subject_id)
+    return service.state(round_)
 
 
 @router.post("/diagnostics/{diagnostic_id}/answers", response_model=DiagnosticAnswerResult)

@@ -134,6 +134,126 @@ def test_create_lesson_with_mocked_gemini_succeeds(client, seeded_topic, learner
     assert len(response.json()) == 1
 
 
+def test_lesson_chat_uses_gemini_with_lesson_and_conversation_context(client, seeded_topic, learner):
+    with (
+        patch("app.ai.gemini_client.GeminiClient.is_configured", new_callable=lambda: property(lambda self: True)),
+        patch("app.ai.gemini_client.GeminiClient.generate_json", return_value=json.dumps(_fake_lesson_payload())),
+        patch("app.ai.gemini_client.GeminiClient.embed_texts", return_value=[[0.1] * 768]),
+    ):
+        created = client.post(
+            "/api/v1/lessons",
+            json={"topic_id": seeded_topic["topic_id"], "prompt": "Explain linked lists"},
+        )
+    assert created.status_code == 201
+    lesson_id = created.json()["id"]
+
+    with patch(
+        "app.ai.gemini_client.GeminiClient.generate_json",
+        return_value=json.dumps({
+            "answer": "A linked list connects nodes through references.",
+            "whiteboard_update": [
+                {
+                    "type": "explanation",
+                    "heading": "Node connections",
+                    "body": "Each node stores a reference to the next node.",
+                }
+            ],
+        }),
+    ) as generate:
+        response = client.post(
+            f"/api/v1/lessons/{lesson_id}/chat",
+            json={
+                "question": "How do the nodes connect?",
+                "history": [{"role": "user", "content": "What is a linked list?"}],
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json()["answer"] == "A linked list connects nodes through references."
+    assert response.json()["lesson"]["blocks"] == [
+        {
+            "type": "explanation",
+            "heading": "Node connections",
+            "body": "Each node stores a reference to the next node.",
+        }
+    ]
+    prompt = generate.call_args.args[0]
+    assert "How do the nodes connect?" in prompt
+    assert "What is a linked list?" in prompt
+    assert "Understanding Linked Lists" in prompt
+
+
+def test_lesson_chat_visual_request_updates_and_persists_whiteboard(client, seeded_topic, learner):
+    with (
+        patch("app.ai.gemini_client.GeminiClient.is_configured", new_callable=lambda: property(lambda self: True)),
+        patch("app.ai.gemini_client.GeminiClient.generate_json", return_value=json.dumps(_fake_lesson_payload())),
+        patch("app.ai.gemini_client.GeminiClient.embed_texts", return_value=[[0.1] * 768]),
+    ):
+        created = client.post(
+            "/api/v1/lessons",
+            json={"topic_id": seeded_topic["topic_id"], "prompt": "Explain linked lists"},
+        )
+    assert created.status_code == 201
+    lesson_id = created.json()["id"]
+    visual_reply = {
+        "answer": "Here is a diagram of the fast and slow pointers meeting at the cycle.",
+        "whiteboard_update": [
+            {
+                "type": "diagram",
+                "caption": "Fast and slow pointers meet inside the cycle.",
+                "nodes": [
+                    {"id": "head", "label": "head"},
+                    {"id": "one", "label": "Node 1"},
+                    {"id": "two", "label": "Node 2"},
+                    {"id": "three", "label": "Node 3"},
+                ],
+                "edges": [
+                    {"source": "head", "target": "one", "label": "next"},
+                    {"source": "one", "target": "two", "label": "slow"},
+                    {"source": "two", "target": "three", "label": "fast"},
+                    {"source": "three", "target": "one", "label": "cycle"},
+                ],
+            }
+        ],
+    }
+
+    with patch("app.ai.gemini_client.GeminiClient.generate_json", return_value=json.dumps(visual_reply)):
+        response = client.post(
+            f"/api/v1/lessons/{lesson_id}/chat",
+            json={"question": "Visualize how cycle detection works in a linked list"},
+        )
+
+    assert response.status_code == 200
+    lesson = response.json()["lesson"]
+    assert lesson["blocks"][-1]["type"] == "diagram"
+    assert len(lesson["blocks"]) == 1
+    assert lesson["blocks"][-1]["caption"] == visual_reply["whiteboard_update"][0]["caption"]
+    assert client.get(f"/api/v1/lessons/{lesson_id}").json()["lesson"]["blocks"][-1]["type"] == "diagram"
+
+
+def test_lesson_chat_requires_visual_for_visualization_request(client, seeded_topic, learner):
+    with (
+        patch("app.ai.gemini_client.GeminiClient.is_configured", new_callable=lambda: property(lambda self: True)),
+        patch("app.ai.gemini_client.GeminiClient.generate_json", return_value=json.dumps(_fake_lesson_payload())),
+        patch("app.ai.gemini_client.GeminiClient.embed_texts", return_value=[[0.1] * 768]),
+    ):
+        created = client.post(
+            "/api/v1/lessons",
+            json={"topic_id": seeded_topic["topic_id"], "prompt": "Explain linked lists"},
+        )
+    assert created.status_code == 201
+    with patch(
+        "app.ai.gemini_client.GeminiClient.generate_json",
+        return_value=json.dumps({"answer": "A cycle is a loop.", "whiteboard_update": None}),
+    ):
+        response = client.post(
+            f"/api/v1/lessons/{created.json()['id']}/chat",
+            json={"question": "Draw a diagram of a linked-list cycle"},
+        )
+    assert response.status_code == 503
+    assert "requested whiteboard visual" in response.json()["error"]["message"]
+
+
 def test_create_lesson_missing_topic_returns_404(client, learner):
     import uuid
 

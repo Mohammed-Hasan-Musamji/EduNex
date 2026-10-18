@@ -39,7 +39,7 @@ function AnswerText({ text, anchorPrefix }: { text: string; anchorPrefix: string
 export function TutorAnswerCard({ question, answer }: { question: string; answer: TutorAnswer }) {
   const anchorPrefix = useId().replace(/:/g, "");
   const status = !answer.grounded
-    ? { tone: "warning" as const, icon: ShieldQuestion, label: "Not found in the textbooks" }
+    ? { tone: "warning" as const, icon: ShieldQuestion, label: "Not verified in textbooks" }
     : answer.support === "partial"
       ? { tone: "gold" as const, icon: CircleHelp, label: "Partly covered by the textbooks" }
       : { tone: "success" as const, icon: ShieldCheck, label: "Answered from the textbooks" };
@@ -64,6 +64,12 @@ export function TutorAnswerCard({ question, answer }: { question: string; answer
         </div>
 
         <AnswerText text={answer.answer} anchorPrefix={anchorPrefix} />
+
+        {!answer.grounded && (
+          <p className="text-xs text-text-subtle">
+            This response uses Gemini&apos;s general knowledge and has not been verified against your textbooks.
+          </p>
+        )}
 
         {answer.grounded && <ListenControls text={answer.answer} label="Listen" showTranscript />}
 

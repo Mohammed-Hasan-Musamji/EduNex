@@ -9,7 +9,6 @@ other subjects/topics are implemented.
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models.assessment import AssessmentQuestion, QuestionType
 from app.models.subject import Subject
 from app.models.topic import DifficultyLevel, Topic
 
@@ -50,51 +49,7 @@ def _get_or_create_topic(db: Session, subject: Subject) -> Topic:
     return topic
 
 
-_SAMPLE_QUESTIONS = [
-    {
-        "question_text": "What does the head pointer of a linked list reference?",
-        "question_type": QuestionType.multiple_choice,
-        "options": ["The last node", "The first node", "A random node", "Nothing, it is unused"],
-        "correct_answer": 1,
-        "explanation": "The head pointer always references the first node in the list.",
-        "difficulty": DifficultyLevel.beginner,
-    },
-    {
-        "question_text": "A null 'next' pointer marks the end of a singly linked list.",
-        "question_type": QuestionType.true_false,
-        "options": None,
-        "correct_answer": True,
-        "explanation": "When a node's next pointer is null, traversal has reached the end of the list.",
-        "difficulty": DifficultyLevel.beginner,
-    },
-    {
-        "question_text": "When removing a node from the middle of a linked list, what must be updated?",
-        "question_type": QuestionType.multiple_choice,
-        "options": [
-            "Nothing -- removal is automatic",
-            "The previous node's next pointer, so it skips the removed node",
-            "Every node's value in the list",
-            "Only the head pointer",
-        ],
-        "correct_answer": 1,
-        "explanation": "The previous node's next pointer must be re-linked to skip over the removed node.",
-        "difficulty": DifficultyLevel.intermediate,
-    },
-]
-
-
-def _seed_questions(db: Session, topic: Topic) -> None:
-    existing_count = db.scalar(
-        select(AssessmentQuestion).where(AssessmentQuestion.topic_id == topic.id).limit(1)
-    )
-    if existing_count is not None:
-        return  # Already seeded for this topic.
-    for item in _SAMPLE_QUESTIONS:
-        db.add(AssessmentQuestion(topic_id=topic.id, **item))
-
-
 def seed_initial_data(db: Session) -> None:
     subject = _get_or_create_subject(db)
-    topic = _get_or_create_topic(db, subject)
-    _seed_questions(db, topic)
+    _get_or_create_topic(db, subject)
     db.commit()

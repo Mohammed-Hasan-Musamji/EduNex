@@ -121,12 +121,12 @@ timestamps are timezone-aware.
 
 ## 4. API endpoints
 
-63 operations under `/api/v1` (plus the original `GET /` and `GET /health`). The full table, with the
+64 operations under `/api/v1` (plus the original `GET /` and `GET /health`). The full table, with the
 auth requirement of every route and request/response examples, is in
 **[../docs/API.md](../docs/API.md)**; the live OpenAPI console is at **http://localhost:8000/docs**.
 
 Main groups: auth · learner profile & preferences · catalog (subjects, topics, indexed textbook
-chapters) · lessons (generate, resume, complete) · **textbook tutor (`POST /tutor/ask`)** ·
+chapters) · lessons (generate, chat with Gemini, resume, complete) · **textbook tutor (`POST /tutor/ask`)** ·
 assessments (questions, practice rounds) · adaptive diagnostics · progress, recommendations,
 **skill profile**, **learning plan** · gamification, analytics, timeline · notifications ·
 **VARK-style questionnaire** · admin (users, subjects, knowledge base, question generation/review).
@@ -167,6 +167,11 @@ If `GEMINI_API_KEY` is not configured, this returns:
 {"error": {"code": "SERVICE_UNAVAILABLE", "message": "Lesson generation is unavailable: GEMINI_API_KEY is not configured on this server.", "details": []}}
 ```
 with HTTP `503` — never a fabricated lesson.
+
+Follow up in an active generated lesson with `POST /api/v1/lessons/{lesson_id}/chat`, sending the
+learner's latest `question` and up to 12 recent `history` turns. Gemini writes each assistant reply.
+When the learner asks for a visualization, Gemini also returns a schema-validated diagram or supported
+linked-list visualization; the whiteboard is updated and the new visual is saved with the lesson.
 
 ### Error format
 
@@ -297,9 +302,10 @@ against a database with real learner data without a backup.
 python -m scripts.seed
 ```
 
-Idempotent — seeds exactly one subject (Data Structures), one topic (Linked
-Lists), and 3 sample assessment questions. Safe to run repeatedly; it never
-duplicates or deletes data.
+Idempotent — seeds one starter subject (Data Structures) and topic (Linked
+Lists), but no sample assessment questions. Learner practice questions are
+generated with Gemini from indexed textbook passages. Safe to run repeatedly;
+it never duplicates or deletes data.
 
 ---
 
@@ -357,11 +363,11 @@ reviewable at `/api/v1/admin/questions`.
 documents, optional subject/document filters, `RAG_MIN_SIMILARITY`, ≤ 20 rows). On SQLite (tests only)
 it runs the same filters with brute-force cosine similarity in Python.
 
-`POST /api/v1/tutor/ask` (`app/ai/tutor.py`) answers only from retrieved excerpts. It doesn't call the
-model when nothing relevant is found, drops any citation that doesn't point at a supplied excerpt,
-withholds answers the model marks unsupported, and returns database metadata (subject, chapter,
-section, PDF pages) for every cited source. VARK preferences change presentation instructions only;
-the evidence and citations are identical for every learner.
+`POST /api/v1/tutor/ask` (`app/ai/tutor.py`) prefers retrieved excerpts and drops any citation that
+doesn't point at a supplied excerpt. When no cited textbook answer is available, Gemini provides a
+general-knowledge response marked as unverified and without textbook sources. Grounded answers return
+database metadata (subject, chapter, section, PDF pages) for every cited source. VARK preferences
+change presentation instructions only; the evidence and citations are identical for every learner.
 
 ## 17. Assessment, skill profile, VARK
 

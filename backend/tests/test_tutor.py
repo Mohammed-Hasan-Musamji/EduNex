@@ -82,21 +82,33 @@ def test_grounded_answer_cites_real_chunks_with_db_metadata(client, corpus, fake
     assert body["retrieval"]["retrieved"] >= 2
 
 
-def test_no_relevant_chunks_answers_not_found_without_calling_the_model(client, corpus, fake):
+def test_no_relevant_chunks_calls_gemini_for_an_unverified_answer(client, corpus, fake):
     register(client)
+    fake.answer = {"answer": "Quantum chromodynamics describes how quarks and gluons interact."}
     body = ask(client, "Explain quantum chromodynamics and gluon confinement").json()
     assert body["grounded"] is False
     assert body["support"] == "not_found"
+    assert body["answer"] == fake.answer["answer"]
     assert body["sources"] == []
-    assert fake.prompts == []
+    assert len(fake.prompts) == 1
+    assert "Explain quantum chromodynamics and gluon confinement" in fake.prompts[0]
+    assert "general knowledge" in fake.prompts[0]
 
 
-def test_model_reporting_no_support_is_not_presented_as_fact(client, corpus, fake):
+def test_unverified_generation_failure_is_reported(client, corpus, fake):
     register(client)
-    fake.answer = {"answer": "Linked lists were invented in 1955.", "support": "none", "cited": []}
+    fake.generate_error = "server_error"
+    response = ask(client, "Explain quantum chromodynamics and gluon confinement")
+    assert response.status_code == 503
+    assert "server_error" in response.json()["error"]["message"]
+
+
+def test_model_reporting_no_support_uses_unverified_gemini_answer(client, corpus, fake):
+    register(client)
+    fake.answer = {"answer": "I can't confirm that from the available textbook passages.", "support": "none", "cited": []}
     body = ask(client, "Who invented the linked list and when?").json()
     assert body["grounded"] is False
-    assert "1955" not in body["answer"]
+    assert body["answer"] == fake.answer["answer"]
     assert body["sources"] == []
 
 
@@ -117,7 +129,8 @@ def test_subject_and_document_filters(client, corpus, fake, db_session):
     fake.answer = {"answer": "Strings are immutable [S1].", "support": "full", "cited": ["S1"]}
     body = ask(client, "Are Python strings immutable sequences of characters?", subject_id=str(corpus["ds"].id)).json()
     assert body["grounded"] is False  # the strings textbook is in another subject
-    assert fake.prompts == [] or "immutable sequences" not in fake.prompts[-1]
+    assert len(fake.prompts) == 1
+    assert STRING_TEXT not in fake.prompts[-1]
 
     body = ask(client, "Are Python strings immutable sequences of characters?", subject_id=str(corpus["py"].id)).json()
     assert body["grounded"] is True

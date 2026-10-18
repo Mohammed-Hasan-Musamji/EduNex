@@ -57,7 +57,7 @@ Backend test suite at audit time: **102 passed, 0 failed**.
 | VARK | PARTIALLY IMPLEMENTED | Self-selected preferences stored and used in lesson prompts; **no questionnaire**, no scores, no version/source provenance. |
 | Skill model | PARTIALLY IMPLEMENTED | Per-topic accuracy (`learner_progress.mastery_estimate`) + diagnostic summary; no confidence/evidence level on the profile, no snapshots over time, no estimated-vs-measured distinction. |
 | Frontend learner UI redesign | PARTIALLY IMPLEMENTED | New design tokens, shell, sidebar, notification bell, charts and gamification widgets exist; onboarding/diagnostic pages and the rebuilt progress/practice pages are not built yet. |
-| Assessment content for textbook subjects | PARTIALLY IMPLEMENTED | Only 3 seeded questions exist (Linked Lists). The 7 textbook subjects have no catalog entries or questions. |
+| Assessment content for textbook subjects | PARTIALLY IMPLEMENTED | Practice questions are generated from indexed source chunks; existing unreviewed drafts require admin approval and historical seeded examples are not served. |
 
 ## 3. Missing
 

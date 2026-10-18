@@ -251,7 +251,7 @@ export default function DashboardPage() {
         }
       />
 
-      {needsOnboarding && (
+      {/* {needsOnboarding && (
         <section className="relative overflow-hidden rounded-[var(--radius-xl)] border border-primary/20 bg-gradient-to-br from-primary-soft via-card to-gold-soft/60 p-6 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-wide text-primary">
             {learner.onboardingStatus === "in_progress" ? "Pick up where you left off" : "Start here"}
@@ -270,7 +270,7 @@ export default function DashboardPage() {
             </Link>
           </div>
         </section>
-      )}
+      )} */}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="flex flex-col gap-4 lg:col-span-2">

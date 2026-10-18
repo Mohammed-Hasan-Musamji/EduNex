@@ -68,7 +68,7 @@ export default function TutorPage() {
       <PageHeader
         eyebrow="Textbook tutor"
         title="Ask the Textbook"
-        description="Answers come only from the indexed course textbooks, with every claim linked to the passage and PDF page it came from. If the textbooks don't cover it, EduNex says so instead of guessing."
+        description="Answers use indexed course textbooks when relevant passages are available, with citations to the source and PDF page. If no passage supports your question, Gemini can still help with a general answer that is clearly marked as unverified."
       />
 
       <section className="rounded-[var(--radius-lg)] border border-border bg-card p-4 shadow-sm sm:p-5">
@@ -143,7 +143,7 @@ export default function TutorPage() {
       <div className="mt-6 flex flex-col gap-4" aria-live="polite">
         {isAsking && (
           <div className="rounded-[var(--radius-lg)] border border-border bg-card p-5">
-            <p className="text-sm text-text-muted">Searching the textbooks and writing a grounded answer…</p>
+            <p className="text-sm text-text-muted">Searching the textbooks and asking Gemini…</p>
             <div className="mt-3 flex flex-col gap-2">
               <Skeleton className="h-4 w-11/12" />
               <Skeleton className="h-4 w-9/12" />
@@ -158,7 +158,7 @@ export default function TutorPage() {
           <EmptyState
             icon={BookOpenText}
             title="Ask anything from your course textbooks"
-            description="Pick a subject or chapter to narrow the search, or search everything. Answers can be read aloud."
+            description="Ask about your course material or another topic. Pick a subject or chapter to narrow textbook search."
           />
         )}
         {history.map((exchange) => (

@@ -60,9 +60,9 @@ the behavior the schema can't express.
 }
 ```
 
-- `grounded: false` with `support: "not_found"` means the indexed textbooks don't support an answer;
-  `sources` is then empty and the answer says so. The model is not even called when nothing clears
-  `RAG_MIN_SIMILARITY`.
+- `grounded: false` with `support: "not_found"` means no cited textbook answer was available.
+  `sources` is empty; Gemini is asked for a general-knowledge answer, which is not verified against
+  the textbooks.
 - `sources[]` only contains chunks that retrieval returned **and** the answer cites. Titles, subjects,
   chapters and page numbers come from the database, never from model output. Page numbers are PDF
   page indices.
@@ -146,7 +146,8 @@ dependencies.
 | POST | `/api/v1/assessments/attempts` | signed in |  |
 | POST | `/api/v1/assessments/rounds` | signed in | Grades a whole practice round on the server, records it, and awards XP/achievements once. Retrying with the same client_request_id replays the stored result (replayed=tru |
 | GET | `/api/v1/learners/{learner_id}/assessments` | owner or admin |  |
-| GET | `/api/v1/topics/{topic_id}/questions` | public (personalized when signed in) |  |
+| GET | `/api/v1/topics/{topic_id}/questions` | optional | Lists approved, non-seeded questions without answer keys. |
+| POST | `/api/v1/topics/{topic_id}/questions/generate` | signed in | Generates and validates practice questions with Gemini from indexed textbook passages. |
 
 ### auth
 
@@ -209,6 +210,7 @@ dependencies.
 |---|---|---|---|
 | GET | `/api/v1/learners/{learner_id}/lessons` | owner or admin |  |
 | POST | `/api/v1/lessons` | signed in |  |
+| POST | `/api/v1/lessons/{lesson_id}/chat` | lesson owner or admin | Generates a Gemini reply using the lesson and recent chat context; visualization requests also return and persist a validated whiteboard update. |
 | GET | `/api/v1/lessons/{lesson_id}` | signed in |  |
 | POST | `/api/v1/lessons/{lesson_id}/complete` | signed in | Marks a generated lesson as finished by its learner and awards XP once. Idempotent: repeating it returns already_completed=True with no reward. |
 | POST | `/api/v1/lessons/{lesson_id}/resume` | signed in |  |

@@ -10,10 +10,16 @@ import uuid
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
+from app.ai.gemini_client import GeminiClient, get_gemini_client
+from app.ai.lesson_chat import answer_lesson_chat
 from app.api.deps import get_current_learner, get_db, verify_owner_or_admin
+from app.core.exceptions import ValidationAppError
 from app.models.learner import Learner
-from app.models.lesson import LessonSession
+from app.models.lesson import LessonSession, LessonSessionStatus
 from app.schemas.lesson import (
+    Lesson,
+    LessonChatRequest,
+    LessonChatResponse,
     LessonCompletionResult,
     LessonSessionCreate,
     LessonSessionRead,
@@ -54,6 +60,26 @@ def get_lesson(
 ) -> LessonSessionRead:
     session = LessonService(db).get_session_for_owner(lesson_id, current)
     return LessonSessionRead.model_validate(to_lesson_session_read(session))
+
+
+@router.post("/lessons/{lesson_id}/chat", response_model=LessonChatResponse)
+def chat_about_lesson(
+    lesson_id: uuid.UUID,
+    payload: LessonChatRequest,
+    db: Session = Depends(get_db),
+    current: Learner = Depends(get_current_learner),
+    gemini: GeminiClient = Depends(get_gemini_client),
+) -> LessonChatResponse:
+    session = LessonService(db).get_session_for_owner(lesson_id, current)
+    if session.status != LessonSessionStatus.ready or not session.lesson_json:
+        raise ValidationAppError("Chat is available after the lesson has finished generating.")
+    lesson = Lesson.model_validate(session.lesson_json)
+    answer, whiteboard_update = answer_lesson_chat(gemini, lesson=lesson, question=payload.question, history=payload.history)
+    if whiteboard_update is not None:
+        lesson = lesson.model_copy(update={"blocks": whiteboard_update})
+        session.lesson_json = lesson.model_dump(mode="json")
+        db.commit()
+    return LessonChatResponse(answer=answer, lesson=lesson if whiteboard_update is not None else None)
 
 
 @router.post("/lessons/{lesson_id}/resume", response_model=LessonSessionRead)

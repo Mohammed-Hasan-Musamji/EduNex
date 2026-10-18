@@ -11,7 +11,15 @@ function loadSession(): LearningSession | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = window.sessionStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as LearningSession) : null;
+    if (!raw) return null;
+    const session = JSON.parse(raw) as LearningSession;
+    session.messages = session.messages.filter(
+      (message) =>
+        message.role !== "assistant" ||
+        (!message.content.includes("I've put together a lesson on ") &&
+          !message.content.includes("I've updated the whiteboard on the left")),
+    );
+    return session;
   } catch {
     return null;
   }
@@ -29,8 +37,7 @@ function persistSession(session: LearningSession | null) {
 /**
  * Tracks the learner's in-progress Learn with AI session for this browser
  * tab only. This is non-authoritative UI continuity, not persisted learner
- * state — the backend remains the source of truth once session endpoints
- * exist.
+ * state — generated lessons and chat answers come from the backend.
  */
 export function useLearningSession() {
   const [session, setSession] = useState<LearningSession | null>(null);

@@ -3,6 +3,8 @@ import uuid
 import pytest
 
 from app.db.seed import seed_initial_data
+from app.models.assessment import AssessmentQuestion, QuestionType
+from app.models.topic import DifficultyLevel
 from app.services.progress_service import ProgressService
 from tests.conftest import register
 
@@ -15,6 +17,19 @@ def seeded_topic_id(db_session):
 
     subject = db_session.query(Subject).first()
     topic = db_session.query(Topic).filter(Topic.subject_id == subject.id).first()
+    db_session.add(
+        AssessmentQuestion(
+            topic_id=topic.id,
+            question_text="Which pointer references the first node?",
+            question_type=QuestionType.multiple_choice,
+            options=["tail", "head", "next", "null"],
+            correct_answer=1,
+            explanation="The head references the first node.",
+            difficulty=DifficultyLevel.beginner,
+            origin="admin",
+        )
+    )
+    db_session.commit()
     return str(topic.id)
 
 

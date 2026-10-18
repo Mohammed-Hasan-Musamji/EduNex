@@ -13,7 +13,7 @@ def main() -> None:
     db = SessionLocal()
     try:
         seed_initial_data(db)
-        print("Seed complete: Data Structures -> Linked Lists (+ sample assessment questions).")
+        print("Seed complete: Data Structures -> Linked Lists (practice questions are generated from indexed content).")
     finally:
         db.close()
 

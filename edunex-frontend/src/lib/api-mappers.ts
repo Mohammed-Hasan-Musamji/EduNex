@@ -131,7 +131,7 @@ function mapSourceReference(dto: { chunk_id: string; document_title: string; exc
 
 type LessonBlockDTO = z.infer<typeof lessonBlockBackendSchema>;
 
-function mapBlock(block: LessonBlockDTO): LessonBlock {
+export function mapBlock(block: LessonBlockDTO): LessonBlock {
   const id = generateId("block");
   switch (block.type) {
     case "explanation":

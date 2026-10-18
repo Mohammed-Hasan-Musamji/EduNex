@@ -39,8 +39,10 @@ from datetime import UTC, datetime
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.ai.gemini_client import GeminiClient
 from app.core.exceptions import ForbiddenError, NotFoundError, ValidationAppError
 from app.db.transaction import run_in_transaction
+from app.models.academic_document import AcademicDocument, IngestionStatus
 from app.models.assessment import (
     AssessmentAttempt,
     AssessmentQuestion,
@@ -68,6 +70,7 @@ from app.schemas.diagnostic import (
 from app.services.assessment_service import AssessmentService, feedback_for
 from app.services.gamification_service import DIAGNOSTIC_COMPLETED_XP, RewardSession
 from app.services.progress_service import ProgressService
+from app.services.question_generation import generate_for_topic
 from app.services.skill_service import record_snapshots
 
 DIAGNOSTIC_MAX_QUESTIONS = 8
@@ -277,7 +280,9 @@ class DiagnosticService:
         pool = list(
             self.db.scalars(
                 select(AssessmentQuestion).where(
-                    AssessmentQuestion.topic_id.in_([t.id for t in topics]), AssessmentQuestion.review_status != "rejected"
+                    AssessmentQuestion.topic_id.in_([t.id for t in topics]),
+                    AssessmentQuestion.review_status == "approved",
+                    AssessmentQuestion.origin != "seeded",
                 )
             )
         ) if topics else []
@@ -304,7 +309,11 @@ class DiagnosticService:
             correct_count=round_.correct_count,
             max_questions=round_.max_questions,
             current_difficulty=round_.current_difficulty,
-            question=QuestionPublic.model_validate(question) if question else None,
+            question=(
+                QuestionPublic.model_validate(question)
+                if question is not None and question.origin != "seeded" and question.review_status == "approved"
+                else None
+            ),
             question_topic_name=topic.name if topic else None,
             summary=DiagnosticSummary.model_validate(round_.summary) if round_.summary else None,
             created_at=round_.created_at,
@@ -331,6 +340,48 @@ class DiagnosticService:
 
     # --- writes ------------------------------------------------------------
 
+    def generate_questions_if_empty(self, learner: Learner, subject_id: uuid.UUID, gemini: GeminiClient) -> None:
+        subject, topics, pool = self._subject_pool(subject_id)
+        existing = self.db.scalar(
+            select(AssessmentRound).where(
+                AssessmentRound.learner_id == learner.id,
+                AssessmentRound.kind == AssessmentRoundKind.diagnostic,
+                AssessmentRound.subject_id == subject.id,
+                AssessmentRound.status == AssessmentRoundStatus.in_progress,
+            )
+        )
+        if existing is None and pool:
+            return
+        if existing is not None:
+            pending = self.db.get(AssessmentQuestion, existing.pending_question_id) if existing.pending_question_id else None
+            if pending is not None and pending.origin != "seeded" and pending.review_status == "approved":
+                return
+            served = set(existing.served_question_ids)
+            if any(str(question.id) not in served for question in pool):
+                return
+
+        indexed_topic_ids = set(
+            self.db.scalars(
+                select(AcademicDocument.topic_id).where(
+                    AcademicDocument.topic_id.in_([topic.id for topic in topics]),
+                    AcademicDocument.ingestion_status == IngestionStatus.indexed,
+                )
+            )
+        ) if topics else set()
+        for topic in topics:
+            if topic.id not in indexed_topic_ids:
+                continue
+            report = generate_for_topic(
+                self.db,
+                gemini,
+                topic.id,
+                excerpts=2,
+                per_excerpt=2,
+                review_status="approved",
+            )
+            if report.accepted:
+                return
+
     def start(self, learner: Learner, subject_id: uuid.UUID) -> DiagnosticState:
         return run_in_transaction(self.db, lambda: self._start(learner, subject_id))
 
@@ -345,6 +396,20 @@ class DiagnosticService:
             )
         )
         if existing is not None:
+            pending = self.db.get(AssessmentQuestion, existing.pending_question_id) if existing.pending_question_id else None
+            if pending is not None and pending.origin != "seeded" and pending.review_status == "approved":
+                return self.state(existing)
+            served = {uuid.UUID(question_id) for question_id in existing.served_question_ids}
+            next_question = select_next_question(pool, served, existing.current_difficulty or DifficultyLevel.beginner, {})
+            if next_question is None:
+                raise ValidationAppError(
+                    f"{subject.name} has no new approved questions for this diagnostic. "
+                    "Generate more questions from indexed textbook content."
+                )
+            existing.pending_question_id = next_question.id
+            existing.served_question_ids = [*existing.served_question_ids, str(next_question.id)]
+            remaining = sum(1 for question in pool if question.id not in served)
+            existing.max_questions = max(existing.total_count + 1, min(DIAGNOSTIC_MAX_QUESTIONS, existing.total_count + remaining))
             return self.state(existing)  # resume rather than restart
 
         if not pool:
@@ -391,6 +456,8 @@ class DiagnosticService:
         question = self.db.get(AssessmentQuestion, data.question_id)
         if question is None:
             raise NotFoundError(f"Question {data.question_id} was not found")
+        if question.origin == "seeded" or question.review_status != "approved":
+            raise NotFoundError(f"Question {data.question_id} is not available for this diagnostic")
         is_correct = AssessmentService._evaluate(question, data.submitted_answer)
 
         now = datetime.now(UTC)

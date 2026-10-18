@@ -8,10 +8,11 @@ excerpt at a time, and each draft is accepted only if it:
 - has an explanation (shown after answering);
 - isn't a near-duplicate of an existing question in that topic.
 Accepted items are stored with origin="generated",
-review_status="unreviewed", and source_chunk_id pointing at the excerpt
-they were written from -- so every generated item traces back to a
-specific textbook passage and page. Nothing is generated without that
-passage; if Gemini is unavailable, nothing is stored.
+source_chunk_id pointing at the excerpt they were written from -- so every
+generated item traces back to a specific textbook passage and page. Admin
+generation defaults to `unreviewed`; learner-triggered generation may pass
+`approved` after the same strict schema and source validation. Nothing is
+generated without a source passage; if Gemini is unavailable, nothing is stored.
 """
 
 from __future__ import annotations
@@ -117,7 +118,13 @@ def sample_chunks(chunks: list[AcademicContentChunk], count: int) -> list[Academ
 
 
 def generate_for_topic(
-    db: Session, client: GeminiClient, topic_id: uuid.UUID, *, excerpts: int = 4, per_excerpt: int = 2
+    db: Session,
+    client: GeminiClient,
+    topic_id: uuid.UUID,
+    *,
+    excerpts: int = 4,
+    per_excerpt: int = 2,
+    review_status: Literal["approved", "unreviewed"] = "unreviewed",
 ) -> GenerationReport:
     topic = db.get(Topic, topic_id)
     if topic is None:
@@ -132,7 +139,14 @@ def generate_for_topic(
     if not documents:
         raise ValidationAppError(f"'{topic.name}' has no indexed textbook content to generate questions from.")
 
-    existing = list(db.scalars(select(AssessmentQuestion).where(AssessmentQuestion.topic_id == topic.id)))
+    existing = list(
+        db.scalars(
+            select(AssessmentQuestion).where(
+                AssessmentQuestion.topic_id == topic.id,
+                AssessmentQuestion.origin != "seeded",
+            )
+        )
+    )
     if len(existing) >= MAX_PER_TOPIC:
         raise ValidationAppError(f"'{topic.name}' already has {len(existing)} questions (limit {MAX_PER_TOPIC}).")
     existing_texts = [q.question_text for q in existing]
@@ -186,7 +200,7 @@ def generate_for_topic(
                     explanation=draft.explanation.strip(),
                     difficulty=DifficultyLevel(draft.difficulty),
                     origin="generated",
-                    review_status="unreviewed",
+                    review_status=review_status,
                     source_chunk_id=chunk.id,
                 )
             )

@@ -27,7 +27,7 @@ from sqlalchemy.orm import Session
 from app.ai.gemini_client import GeminiClient
 from app.ai.personalization import personalization_for
 from app.core.config import get_settings
-from app.core.exceptions import NotFoundError, ValidationAppError
+from app.core.exceptions import NotFoundError, ServiceUnavailableError, ValidationAppError
 from app.core.logging import get_logger
 from app.models.academic_document import AcademicDocument
 from app.models.learner import Learner
@@ -40,14 +40,6 @@ from app.schemas.tutor import PersonalizationInfo, RetrievalInfo, TutorAnswer, T
 logger = get_logger(__name__)
 
 EXCERPT_CHARS = 400
-NOT_FOUND_ANSWER = (
-    "I couldn't find this in the indexed textbooks, so I won't guess. Try rephrasing, choosing a different "
-    "subject, or asking about a topic covered by the course material."
-)
-UNSUPPORTED_ANSWER = (
-    "The textbook passages I found don't actually answer this, so I won't present a guess as textbook "
-    "content. The closest passages are about related material -- try rephrasing or narrowing the subject."
-)
 _LABEL = re.compile(r"\[S(\d+)\]")
 
 _PROMPT = """You are EduNex's textbook tutor. Answer the student's question using ONLY the numbered
@@ -67,6 +59,19 @@ STUDENT QUESTION:
 
 TEXTBOOK EXCERPTS:
 {excerpts}
+"""
+
+_UNVERIFIED_PROMPT = """You are EduNex's educational AI tutor. Answer the student's question clearly
+and helpfully using your general knowledge. The textbook passages do not support this response, so do
+not claim that it is supported by EduNex's textbooks. Do not invent textbook citations or sources.
+Adapt the explanation to the learner's preferences when useful:
+{style}
+
+STUDENT QUESTION:
+{question}
+
+Respond with ONLY this JSON object:
+{{"answer": string}}
 """
 
 
@@ -118,9 +123,11 @@ class TutorService:
             document_id=request.document_id,
         )
 
-        answer, support, cited = NOT_FOUND_ANSWER, "not_found", []
+        answer, support, cited = "", "not_found", []
         if chunks:
             answer, support, cited = self._generate(request.question, chunks, personalization.instructions)
+        if not chunks or support == "not_found":
+            answer = self._generate_unverified(request.question, personalization.instructions)
 
         sources = self._sources(cited)
         grounded = support in ("supported", "partial") and bool(sources)
@@ -132,7 +139,7 @@ class TutorService:
             subject_id=request.subject_id,
             document_id=request.document_id,
             cited_chunk_ids=[str(s.chunk_id) for s in sources],
-            retrieval={**retrieval.model_dump(mode="json"), "model": self.settings.gemini_model if chunks else None},
+            retrieval={**retrieval.model_dump(mode="json"), "model": self.gemini.last_model_used},
             created_at=datetime.now(UTC),
         )
         self.db.add(interaction)
@@ -167,10 +174,10 @@ class TutorService:
             cited_labels = data.get("cited") or []
         except (ValueError, KeyError, TypeError):
             logger.warning("Tutor response was not valid JSON; reporting as unsupported.")
-            return UNSUPPORTED_ANSWER, "not_found", []
+            return "", "not_found", []
 
         if support not in ("full", "partial") or not answer:
-            return UNSUPPORTED_ANSWER, "not_found", []
+            return "", "not_found", []
 
         # Order sources by first appearance in the answer, then by the cited list.
         labels_in_order = [int(m) for m in _LABEL.findall(answer)]
@@ -180,12 +187,29 @@ class TutorService:
             if 1 <= label <= len(chunks) and label not in valid:
                 valid.append(label)
         if not valid:
-            return UNSUPPORTED_ANSWER, "not_found", []
+            return "", "not_found", []
 
         renumber = {label: i for i, label in enumerate(valid, start=1)}
         answer = _LABEL.sub(lambda m: f"[{renumber[int(m.group(1))]}]" if int(m.group(1)) in renumber else "", answer)
         answer = re.sub(r"[ \t]+([.,;:])", r"\1", re.sub(r"[ \t]{2,}", " ", answer)).strip()
         return answer, "supported" if support == "full" else "partial", [chunks[label - 1] for label in valid]
+
+    def _generate_unverified(self, question: str, style: list[str]) -> str:
+        prompt = _UNVERIFIED_PROMPT.format(
+            style="\n".join(f"- {instruction}" for instruction in style) or "- Clear, balanced explanation.",
+            question=question,
+        )
+        raw = self.gemini.generate_json(prompt)
+        try:
+            data = json.loads(raw)
+            answer = data["answer"]
+        except (ValueError, KeyError, TypeError) as exc:
+            logger.warning("Gemini returned an invalid unverified tutor response.")
+            raise ServiceUnavailableError("Gemini returned an invalid answer. Please try again.") from exc
+        if not isinstance(answer, str) or not answer.strip():
+            logger.warning("Gemini returned an empty unverified tutor response.")
+            raise ServiceUnavailableError("Gemini returned an empty answer. Please try again.")
+        return answer.strip()
 
     def _sources(self, cited: list[RetrievedChunk]) -> list[TutorSource]:
         sources = []

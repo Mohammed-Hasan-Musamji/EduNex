@@ -47,9 +47,8 @@ class AssessmentQuestion(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     difficulty: Mapped[DifficultyLevel] = mapped_column(
         Enum(DifficultyLevel, name="difficulty_level"), nullable=False, default=DifficultyLevel.beginner
     )
-    # Where the item came from: "seeded" (app/db/seed.py), "generated"
-    # (Gemini, grounded in source_chunk_id -- see app/services/question_generation.py),
-    # or "admin".
+    # "seeded" is retained for historical rows but never served to learners;
+    # generated items must trace to a source chunk.
     origin: Mapped[str] = mapped_column(String(20), nullable=False, default="seeded")
     # Generated items start "unreviewed"; only reviewed/approved items should
     # be presented as vetted curriculum.

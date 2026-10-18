@@ -44,7 +44,7 @@ import { ProgressRing } from "@/components/ui/Progress";
 import { Select } from "@/components/ui/Select";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { assessmentsApi, subjectsApi } from "@/lib/api-client";
-import { buildLearnUrl, routes } from "@/lib/routes";
+import { buildLearnUrl } from "@/lib/routes";
 import type { AssessmentQuestion as Question, QuestionAnswer } from "@/types/assessment";
 import type { Subject } from "@/types/content";
 import type { PracticeRoundResult } from "@/types/engagement";
@@ -69,6 +69,7 @@ function PracticeRound() {
   const [result, setResult] = useState<PracticeRoundResult | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const requestId = useRef<string | null>(null);
 
   useEffect(() => {
@@ -192,7 +193,11 @@ function PracticeRound() {
 
   const loadQuestions = (id: string) => {
     setQuestions(null);
+<<<<<<< HEAD
 >>>>>>> b5abe61 (Implemented 3)
+=======
+    setLoadError(null);
+>>>>>>> 055e379 (Final Code)
     setAnswers({});
     setResult(null);
     setSubmitError(null);
@@ -526,12 +531,40 @@ function PracticeRound() {
       ) : questions.length === 0 ? (
         <EmptyState
           title={`No questions for ${topicName} yet`}
-          description="Questions for textbook topics are generated from the indexed chapters and appear here once available."
-          action={
-            <Link href={routes.learner.tutor} className={buttonClasses("secondary")}>
-              Ask the textbook instead
-            </Link>
+          description={
+            loadError ??
+            "Ask Gemini to create fresh questions from this topic’s indexed textbook chapters. No sample questions are used."
           }
+          action={<Button
+            onClick={async () => {
+              if (!topicId || generating) return;
+              setGenerating(true);
+              setLoadError(null);
+              const generated = await assessmentsApi.generateQuestions(topicId);
+              if (!generated.ok) {
+                setLoadError(generated.error.message);
+                setGenerating(false);
+                return;
+              }
+              if (generated.data.accepted === 0) {
+                setLoadError("Gemini could not create a new valid question from the available chapter text. Try again later or ask an administrator to review the indexed content.");
+                setQuestions([]);
+                setGenerating(false);
+                return;
+              }
+              const refreshed = await assessmentsApi.listQuestions(topicId, ROUND_SIZE);
+              if (!refreshed.ok) {
+                setLoadError(refreshed.error.message);
+                setQuestions([]);
+              } else {
+                setQuestions(refreshed.data);
+              }
+              setGenerating(false);
+            }}
+            isLoading={generating}
+          >
+            Generate questions with Gemini
+          </Button>}
         />
       ) : (
         <>
@@ -582,7 +615,7 @@ export default function PracticePage() {
       <PageHeader
         eyebrow="Practice"
         title="Practice & Assessments"
-        description="Short rounds of up to five questions, preferring ones you haven't answered yet. Your browser never decides whether an answer is right: every answer is graded on the server."
+        description="Generate fresh questions from indexed textbook chapters. Short rounds prefer questions you haven't answered; answers are always graded on the server."
       />
       <Suspense fallback={<Skeleton className="h-72" />}>
         <PracticeRound />

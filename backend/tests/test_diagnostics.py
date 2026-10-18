@@ -1,9 +1,14 @@
 import pytest
 
+from app.ai.gemini_client import get_gemini_client
+from app.models.academic_document import AcademicDocument, DocumentContentType, IngestionStatus
 from app.models.assessment import AssessmentQuestion, QuestionType
+from app.models.content_chunk import AcademicContentChunk
 from app.models.subject import Subject
 from app.models.topic import DifficultyLevel, Topic
+from main import app as fastapi_app
 from tests.conftest import register
+from tests.fakes import FakeGemini
 
 TIERS = [DifficultyLevel.beginner, DifficultyLevel.intermediate, DifficultyLevel.advanced]
 
@@ -31,6 +36,7 @@ def subject(db_session):
                         correct_answer=0,
                         explanation="Because a.",
                         difficulty=tier,
+                        origin="admin",
                     )
                 )
     db_session.commit()
@@ -155,6 +161,70 @@ def test_subject_without_questions_reports_honestly(client, db_session):
     response = client.post("/api/v1/diagnostics", json={"subject_id": str(empty.id)})
     assert response.status_code == 422
     assert "no assessment questions" in response.json()["error"]["message"]
+
+
+def test_diagnostic_generates_questions_from_indexed_textbook_with_gemini(client, db_session):
+    subject = Subject(name="Python", slug="python", description="", is_active=True)
+    db_session.add(subject)
+    db_session.flush()
+    topic = Topic(
+        subject_id=subject.id,
+        name="Strings",
+        slug="strings",
+        description="",
+        difficulty=DifficultyLevel.beginner,
+    )
+    db_session.add(topic)
+    db_session.flush()
+    doc = AcademicDocument(
+        title="Python Strings",
+        source_name="strings.pdf",
+        raw_text="Python strings are immutable. " * 30,
+        content_type=DocumentContentType.text,
+        subject_id=subject.id,
+        topic_id=topic.id,
+        ingestion_status=IngestionStatus.indexed,
+    )
+    db_session.add(doc)
+    db_session.flush()
+    db_session.add(
+        AcademicContentChunk(
+            document_id=doc.id,
+            chunk_text="Python strings are immutable. Concatenation and slicing return new string objects. " * 6,
+            chunk_order=0,
+            embedding=[0.0] * 768,
+        )
+    )
+    db_session.commit()
+
+    account = register(client)
+    gemini = FakeGemini(
+        answer={
+            "questions": [
+                {
+                    "question_text": "What happens when a Python string is sliced?",
+                    "question_type": "multiple_choice",
+                    "options": ["A new string is returned", "The original is modified", "It raises an error", "It returns null"],
+                    "correct_answer": 0,
+                    "explanation": "Slicing an immutable string returns a new string object.",
+                    "difficulty": "beginner",
+                }
+            ]
+        }
+    )
+    fastapi_app.dependency_overrides[get_gemini_client] = lambda: gemini
+    try:
+        response = client.post("/api/v1/diagnostics", json={"subject_id": str(subject.id)})
+        assert response.status_code == 201, response.text
+        assert response.json()["question"]["question_text"] == "What happens when a Python string is sliced?"
+        assert response.json()["question"]["origin"] == "generated"
+        assert "correct_answer" not in response.json()["question"]
+        stored = db_session.query(AssessmentQuestion).filter_by(topic_id=topic.id).one()
+        assert stored.review_status == "approved" and stored.source_chunk_id is not None
+        assert client.get(f"/api/v1/learners/{account['id']}/diagnostics").status_code == 200
+        assert gemini.prompts
+    finally:
+        fastapi_app.dependency_overrides.pop(get_gemini_client, None)
 
 
 def test_other_learners_cannot_read_or_answer_a_diagnostic(client, subject):

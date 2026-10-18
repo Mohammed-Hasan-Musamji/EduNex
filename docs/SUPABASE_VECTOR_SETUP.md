@@ -91,7 +91,7 @@ From `backend/` with the Supabase `DATABASE_URL` in `.env`:
 ```bash
 .venv/bin/alembic upgrade head
 .venv/bin/alembic current        # expect: 0004_rag_supabase_vectors (head)
-.venv/bin/python -m scripts.seed  # optional: the sample Linked Lists topic + 3 questions
+.venv/bin/python -m scripts.seed  # optional: starter Linked Lists catalog entry (no sample questions)
 ```
 
 Never run `alembic downgrade` against a database holding real learner data without a verified backup
