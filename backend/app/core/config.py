@@ -30,7 +30,7 @@ class Settings(BaseSettings):
 
     # --- Gemini ---
     gemini_api_key: str | None = None
-    gemini_model: str = "gemini-2.5-flash"
+    gemini_model: str = "gemini-3.8-flash"
     gemini_embedding_model: str = "gemini-embedding-001"
     gemini_embedding_dimensions: int = 768
     gemini_timeout_seconds: float = 30.0

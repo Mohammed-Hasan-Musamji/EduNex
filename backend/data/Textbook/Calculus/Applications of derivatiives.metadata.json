@@ -1,0 +1,791 @@
+{
+  "metadata": {
+    "subject": "Calculus",
+    "chapter_title": "Applications of Derivatives",
+    "chapter_number": "4",
+    "document_title": null,
+    "topics": [
+      "Applications of Derivatives",
+      "Related Rates",
+      "Rate of Change",
+      "Geometric and Physical Rates Problems"
+    ],
+    "keywords": [
+      "related rates",
+      "chain rule",
+      "derivatives",
+      "rate of change",
+      "Pythagorean theorem",
+      "similar triangles",
+      "volume of sphere",
+      "volume of cone"
+    ],
+    "sections": [
+      {
+        "title": "Introduction",
+        "start_pdf_page": 1
+      },
+      {
+        "title": "4.1 Related Rates",
+        "start_pdf_page": 2
+      },
+      {
+        "title": "4.2 Linear Approximations and Differentials",
+        "start_pdf_page": null
+      },
+      {
+        "title": "4.3 Maxima and Minima",
+        "start_pdf_page": null
+      },
+      {
+        "title": "4.4 The Mean Value Theorem",
+        "start_pdf_page": null
+      },
+      {
+        "title": "4.5 Derivatives and the Shape of a Graph",
+        "start_pdf_page": null
+      },
+      {
+        "title": "4.6 Limits at Infinity and Asymptotes",
+        "start_pdf_page": null
+      },
+      {
+        "title": "4.7 Applied Optimization Problems",
+        "start_pdf_page": null
+      },
+      {
+        "title": "4.8 L’Hôpital’s Rule",
+        "start_pdf_page": null
+      },
+      {
+        "title": "4.9 Newton’s Method",
+        "start_pdf_page": null
+      },
+      {
+        "title": "4.10 Antiderivatives",
+        "start_pdf_page": null
+      }
+    ],
+    "learning_objectives": [
+      "Express changing quantities in terms of derivatives.",
+      "Find relationships among the derivatives in a given problem.",
+      "Use the chain rule to find the rate of change of one quantity that depends on the rate of change of other quantities."
+    ],
+    "difficulty_estimate": "intermediate",
+    "review_required": false,
+    "review_notes": [
+      "Sections 4.2 through 4.10 are listed in the chapter outline on page 1, but their start pages are not present within the provided text excerpt."
+    ],
+    "source_relative_path": "Calculus/Applications of derivatiives.pdf",
+    "pdf_page_count": 141,
+    "pages_needing_ocr": [],
+    "metadata_pipeline_version": 1
+  },
+  "pages": [
+    {
+      "pdf_page": 1,
+      "character_count": 1517,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 2,
+      "character_count": 2501,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 3,
+      "character_count": 2150,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 4,
+      "character_count": 2449,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 5,
+      "character_count": 1187,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 6,
+      "character_count": 1784,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 7,
+      "character_count": 1357,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 8,
+      "character_count": 1327,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 9,
+      "character_count": 2423,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 10,
+      "character_count": 4518,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 11,
+      "character_count": 2111,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 12,
+      "character_count": 2630,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 13,
+      "character_count": 3012,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 14,
+      "character_count": 2340,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 15,
+      "character_count": 1300,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 16,
+      "character_count": 1605,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 17,
+      "character_count": 914,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 18,
+      "character_count": 2243,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 19,
+      "character_count": 1752,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 20,
+      "character_count": 2589,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 21,
+      "character_count": 2326,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 22,
+      "character_count": 2268,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 23,
+      "character_count": 2995,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 24,
+      "character_count": 1487,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 25,
+      "character_count": 1585,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 26,
+      "character_count": 3158,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 27,
+      "character_count": 2490,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 28,
+      "character_count": 1369,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 29,
+      "character_count": 1795,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 30,
+      "character_count": 2222,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 31,
+      "character_count": 1278,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 32,
+      "character_count": 2951,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 33,
+      "character_count": 1579,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 34,
+      "character_count": 1947,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 35,
+      "character_count": 2016,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 36,
+      "character_count": 1879,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 37,
+      "character_count": 1273,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 38,
+      "character_count": 1467,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 39,
+      "character_count": 1237,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 40,
+      "character_count": 1790,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 41,
+      "character_count": 2376,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 42,
+      "character_count": 2239,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 43,
+      "character_count": 1901,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 44,
+      "character_count": 2550,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 45,
+      "character_count": 3128,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 46,
+      "character_count": 1867,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 47,
+      "character_count": 3071,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 48,
+      "character_count": 1204,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 49,
+      "character_count": 1973,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 50,
+      "character_count": 1982,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 51,
+      "character_count": 2400,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 52,
+      "character_count": 1648,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 53,
+      "character_count": 2220,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 54,
+      "character_count": 2560,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 55,
+      "character_count": 1528,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 56,
+      "character_count": 454,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 57,
+      "character_count": 144,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 58,
+      "character_count": 1390,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 59,
+      "character_count": 2424,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 60,
+      "character_count": 2376,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 61,
+      "character_count": 1895,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 62,
+      "character_count": 1435,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 63,
+      "character_count": 858,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 64,
+      "character_count": 1329,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 65,
+      "character_count": 1497,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 66,
+      "character_count": 1416,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 67,
+      "character_count": 1545,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 68,
+      "character_count": 1035,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 69,
+      "character_count": 1292,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 70,
+      "character_count": 1958,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 71,
+      "character_count": 865,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 72,
+      "character_count": 841,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 73,
+      "character_count": 2040,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 74,
+      "character_count": 1139,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 75,
+      "character_count": 1303,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 76,
+      "character_count": 1523,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 77,
+      "character_count": 2431,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 78,
+      "character_count": 1996,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 79,
+      "character_count": 2129,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 80,
+      "character_count": 2010,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 81,
+      "character_count": 1484,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 82,
+      "character_count": 1716,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 83,
+      "character_count": 1494,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 84,
+      "character_count": 1359,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 85,
+      "character_count": 485,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 86,
+      "character_count": 2532,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 87,
+      "character_count": 2543,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 88,
+      "character_count": 2671,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 89,
+      "character_count": 2698,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 90,
+      "character_count": 1732,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 91,
+      "character_count": 1336,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 92,
+      "character_count": 3392,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 93,
+      "character_count": 1413,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 94,
+      "character_count": 3045,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 95,
+      "character_count": 2649,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 96,
+      "character_count": 1747,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 97,
+      "character_count": 2324,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 98,
+      "character_count": 2128,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 99,
+      "character_count": 2320,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 100,
+      "character_count": 3204,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 101,
+      "character_count": 1303,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 102,
+      "character_count": 1713,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 103,
+      "character_count": 1174,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 104,
+      "character_count": 1819,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 105,
+      "character_count": 1566,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 106,
+      "character_count": 1545,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 107,
+      "character_count": 1766,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 108,
+      "character_count": 1912,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 109,
+      "character_count": 929,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 110,
+      "character_count": 1454,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 111,
+      "character_count": 1122,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 112,
+      "character_count": 997,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 113,
+      "character_count": 698,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 114,
+      "character_count": 2234,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 115,
+      "character_count": 2463,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 116,
+      "character_count": 1428,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 117,
+      "character_count": 1231,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 118,
+      "character_count": 981,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 119,
+      "character_count": 1839,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 120,
+      "character_count": 1633,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 121,
+      "character_count": 2807,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 122,
+      "character_count": 1287,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 123,
+      "character_count": 1781,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 124,
+      "character_count": 2097,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 125,
+      "character_count": 3501,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 126,
+      "character_count": 2979,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 127,
+      "character_count": 1715,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 128,
+      "character_count": 1212,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 129,
+      "character_count": 621,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 130,
+      "character_count": 1805,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 131,
+      "character_count": 1296,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 132,
+      "character_count": 1648,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 133,
+      "character_count": 1385,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 134,
+      "character_count": 2665,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 135,
+      "character_count": 1458,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 136,
+      "character_count": 3157,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 137,
+      "character_count": 4175,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 138,
+      "character_count": 3124,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 139,
+      "character_count": 3533,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 140,
+      "character_count": 2331,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 141,
+      "character_count": 3454,
+      "needs_ocr": false
+    }
+  ]
+}

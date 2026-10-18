@@ -1,0 +1,247 @@
+{
+  "metadata": {
+    "subject": "Chemistry",
+    "chapter_title": "Structure and Bonding",
+    "chapter_number": "1",
+    "document_title": null,
+    "topics": [
+      "Organic Chemistry",
+      "Atomic Structure",
+      "Electron Configurations",
+      "Chemical Bonding Theory",
+      "Valence Bond Theory",
+      "Orbital Hybridization",
+      "Molecular Orbital Theory"
+    ],
+    "keywords": [
+      "carbon",
+      "protons",
+      "neutrons",
+      "electrons",
+      "atomic number",
+      "isotopes",
+      "orbitals",
+      "Aufbau principle",
+      "Pauli exclusion principle",
+      "Hund's rule",
+      "covalent bond",
+      "tetravalent",
+      "Lewis structures",
+      "line-bond structures",
+      "valence bond theory"
+    ],
+    "sections": [
+      {
+        "title": "Atomic Structure: The Nucleus",
+        "start_pdf_page": 3
+      },
+      {
+        "title": "Atomic Structure: Orbitals",
+        "start_pdf_page": 3
+      },
+      {
+        "title": "Atomic Structure: Electron Configurations",
+        "start_pdf_page": 5
+      },
+      {
+        "title": "Development of Chemical Bonding Theory",
+        "start_pdf_page": 6
+      },
+      {
+        "title": "Describing Chemical Bonds: Valence Bond Theory",
+        "start_pdf_page": 9
+      },
+      {
+        "title": "sp3 Hybrid Orbitals and the Structure of Methane",
+        "start_pdf_page": null
+      },
+      {
+        "title": "sp3 Hybrid Orbitals and the Structure of Ethane",
+        "start_pdf_page": null
+      },
+      {
+        "title": "sp2 Hybrid Orbitals and the Structure of Ethylene",
+        "start_pdf_page": null
+      },
+      {
+        "title": "sp Hybrid Orbitals and the Structure of Acetylene",
+        "start_pdf_page": null
+      },
+      {
+        "title": "Hybridization of Nitrogen, Oxygen, Phosphorus, and Sulfur",
+        "start_pdf_page": null
+      },
+      {
+        "title": "Describing Chemical Bonds: Molecular Orbital Theory",
+        "start_pdf_page": null
+      },
+      {
+        "title": "Drawing Chemical Structures",
+        "start_pdf_page": null
+      }
+    ],
+    "learning_objectives": [],
+    "difficulty_estimate": "intermediate",
+    "review_required": false,
+    "review_notes": [
+      "Document title is not explicitly stated in the sample pages (only openstax.org attribution is noted).",
+      "Sections 1.6 to 1.12 are derived from the chapter table of contents on page 1; their starting pages exceed the provided 10-page text sample."
+    ],
+    "source_relative_path": "Chemistry/03_Chapter_1_Structure_and_Bonding.pdf",
+    "pdf_page_count": 30,
+    "pages_needing_ocr": [],
+    "metadata_pipeline_version": 1
+  },
+  "pages": [
+    {
+      "pdf_page": 1,
+      "character_count": 1562,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 2,
+      "character_count": 2993,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 3,
+      "character_count": 4355,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 4,
+      "character_count": 2761,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 5,
+      "character_count": 1705,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 6,
+      "character_count": 2671,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 7,
+      "character_count": 3272,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 8,
+      "character_count": 2075,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 9,
+      "character_count": 2064,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 10,
+      "character_count": 2212,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 11,
+      "character_count": 2107,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 12,
+      "character_count": 2463,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 13,
+      "character_count": 2829,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 14,
+      "character_count": 2188,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 15,
+      "character_count": 1723,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 16,
+      "character_count": 2301,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 17,
+      "character_count": 2515,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 18,
+      "character_count": 2557,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 19,
+      "character_count": 2616,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 20,
+      "character_count": 2042,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 21,
+      "character_count": 1271,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 22,
+      "character_count": 2757,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 23,
+      "character_count": 3650,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 24,
+      "character_count": 3803,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 25,
+      "character_count": 1337,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 26,
+      "character_count": 2023,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 27,
+      "character_count": 1830,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 28,
+      "character_count": 1025,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 29,
+      "character_count": 1886,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 30,
+      "character_count": 1352,
+      "needs_ocr": false
+    }
+  ]
+}

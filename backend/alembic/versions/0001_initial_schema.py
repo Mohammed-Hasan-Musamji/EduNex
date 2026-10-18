@@ -63,7 +63,7 @@ def upgrade() -> None:
     )
     op.create_index("ix_subjects_slug", "subjects", ["slug"])
 
-    difficulty_enum = sa.Enum("beginner", "intermediate", "advanced", name="difficulty_level")
+    difficulty_enum = sa.Enum("beginner", "intermediate", "advanced", name="difficulty_level", create_type=False)
     difficulty_enum.create(bind, checkfirst=True)
 
     op.create_table(

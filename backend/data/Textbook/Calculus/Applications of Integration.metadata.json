@@ -1,0 +1,608 @@
+{
+  "metadata": {
+    "subject": "Calculus",
+    "chapter_title": "Applications of Integration",
+    "chapter_number": "6",
+    "document_title": null,
+    "topics": [
+      "Areas between Curves",
+      "Determining Volumes by Slicing",
+      "Volumes of Revolution: Cylindrical Shells",
+      "Arc Length of a Curve and Surface Area",
+      "Physical Applications",
+      "Moments and Centers of Mass",
+      "Integrals, Exponential Functions, and Logarithms",
+      "Exponential Growth and Decay",
+      "Calculus of the Hyperbolic Functions"
+    ],
+    "keywords": [
+      "definite integral",
+      "area between curves",
+      "Riemann sum",
+      "slicing method",
+      "disk method",
+      "washer method",
+      "cross-section",
+      "volume of revolution",
+      "integration with respect to y"
+    ],
+    "sections": [
+      {
+        "title": "6.1 Areas between Curves",
+        "start_pdf_page": 2
+      },
+      {
+        "title": "6.2 Determining Volumes by Slicing",
+        "start_pdf_page": 13
+      },
+      {
+        "title": "6.3 Volumes of Revolution: Cylindrical Shells",
+        "start_pdf_page": null
+      },
+      {
+        "title": "6.4 Arc Length of a Curve and Surface Area",
+        "start_pdf_page": null
+      },
+      {
+        "title": "6.5 Physical Applications",
+        "start_pdf_page": null
+      },
+      {
+        "title": "6.6 Moments and Centers of Mass",
+        "start_pdf_page": null
+      },
+      {
+        "title": "6.7 Integrals, Exponential Functions, and Logarithms",
+        "start_pdf_page": null
+      },
+      {
+        "title": "6.8 Exponential Growth and Decay",
+        "start_pdf_page": null
+      },
+      {
+        "title": "6.9 Calculus of the Hyperbolic Functions",
+        "start_pdf_page": null
+      }
+    ],
+    "learning_objectives": [
+      "Determine the area of a region between two curves by integrating with respect to the independent variable.",
+      "Find the area of a compound region.",
+      "Determine the area of a region between two curves by integrating with respect to the dependent variable.",
+      "Determine the volume of a solid by integrating a cross-section (the slicing method).",
+      "Find the volume of a solid of revolution using the disk method.",
+      "Find the volume of a solid of revolution with a cavity using the washer method."
+    ],
+    "difficulty_estimate": "intermediate",
+    "review_required": false,
+    "review_notes": [
+      "The text sample covers pages 1 through 14 of 104; start_pdf_page for sections 6.3 through 6.9 cannot be determined from the provided sample.",
+      "Overall textbook title is not explicitly specified in the header/body text sample, so document_title is set to null."
+    ],
+    "source_relative_path": "Calculus/Applications of Integration.pdf",
+    "pdf_page_count": 104,
+    "pages_needing_ocr": [],
+    "metadata_pipeline_version": 1
+  },
+  "pages": [
+    {
+      "pdf_page": 1,
+      "character_count": 1460,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 2,
+      "character_count": 2420,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 3,
+      "character_count": 1108,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 4,
+      "character_count": 1221,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 5,
+      "character_count": 1354,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 6,
+      "character_count": 789,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 7,
+      "character_count": 1961,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 8,
+      "character_count": 1567,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 9,
+      "character_count": 1382,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 10,
+      "character_count": 964,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 11,
+      "character_count": 1635,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 12,
+      "character_count": 4335,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 13,
+      "character_count": 2831,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 14,
+      "character_count": 1737,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 15,
+      "character_count": 1760,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 16,
+      "character_count": 1082,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 17,
+      "character_count": 641,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 18,
+      "character_count": 1124,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 19,
+      "character_count": 901,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 20,
+      "character_count": 933,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 21,
+      "character_count": 1119,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 22,
+      "character_count": 2033,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 23,
+      "character_count": 1601,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 24,
+      "character_count": 947,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 25,
+      "character_count": 1509,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 26,
+      "character_count": 1694,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 27,
+      "character_count": 1557,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 28,
+      "character_count": 2800,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 29,
+      "character_count": 305,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 30,
+      "character_count": 730,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 31,
+      "character_count": 2731,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 32,
+      "character_count": 990,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 33,
+      "character_count": 953,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 34,
+      "character_count": 2002,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 35,
+      "character_count": 1276,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 36,
+      "character_count": 1688,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 37,
+      "character_count": 1674,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 38,
+      "character_count": 1583,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 39,
+      "character_count": 1014,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 40,
+      "character_count": 1274,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 41,
+      "character_count": 1413,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 42,
+      "character_count": 2875,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 43,
+      "character_count": 2243,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 44,
+      "character_count": 2932,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 45,
+      "character_count": 1428,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 46,
+      "character_count": 1640,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 47,
+      "character_count": 1770,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 48,
+      "character_count": 1608,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 49,
+      "character_count": 884,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 50,
+      "character_count": 946,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 51,
+      "character_count": 1854,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 52,
+      "character_count": 1095,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 53,
+      "character_count": 613,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 54,
+      "character_count": 2163,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 55,
+      "character_count": 1157,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 56,
+      "character_count": 3695,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 57,
+      "character_count": 2083,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 58,
+      "character_count": 2145,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 59,
+      "character_count": 2448,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 60,
+      "character_count": 1951,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 61,
+      "character_count": 2198,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 62,
+      "character_count": 1615,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 63,
+      "character_count": 1779,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 64,
+      "character_count": 778,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 65,
+      "character_count": 1801,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 66,
+      "character_count": 2172,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 67,
+      "character_count": 1611,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 68,
+      "character_count": 1915,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 69,
+      "character_count": 646,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 70,
+      "character_count": 2711,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 71,
+      "character_count": 3631,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 72,
+      "character_count": 3670,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 73,
+      "character_count": 1871,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 74,
+      "character_count": 1942,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 75,
+      "character_count": 1513,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 76,
+      "character_count": 2445,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 77,
+      "character_count": 2432,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 78,
+      "character_count": 2243,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 79,
+      "character_count": 934,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 80,
+      "character_count": 2339,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 81,
+      "character_count": 852,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 82,
+      "character_count": 987,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 83,
+      "character_count": 1987,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 84,
+      "character_count": 2351,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 85,
+      "character_count": 1190,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 86,
+      "character_count": 2059,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 87,
+      "character_count": 2902,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 88,
+      "character_count": 3260,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 89,
+      "character_count": 1365,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 90,
+      "character_count": 1053,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 91,
+      "character_count": 787,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 92,
+      "character_count": 1462,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 93,
+      "character_count": 1383,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 94,
+      "character_count": 1157,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 95,
+      "character_count": 1783,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 96,
+      "character_count": 929,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 97,
+      "character_count": 1394,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 98,
+      "character_count": 2606,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 99,
+      "character_count": 1589,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 100,
+      "character_count": 2346,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 101,
+      "character_count": 2134,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 102,
+      "character_count": 2157,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 103,
+      "character_count": 1517,
+      "needs_ocr": false
+    },
+    {
+      "pdf_page": 104,
+      "character_count": 1247,
+      "needs_ocr": false
+    }
+  ]
+}
